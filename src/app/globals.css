@@ -1,0 +1,231 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --mds-color-main: #00a99d;
+  --mds-color-hover: #008f85;
+  --mds-color-dark: #222222;
+  --mds-color-muted: #777777;
+  --mds-color-border: #e9ecef;
+  --mds-bg-light: #f8f9fa;
+}
+
+body {
+  color: var(--mds-color-dark);
+  background-color: #ffffff;
+  font-family: var(--font-inter), 'Open Sans', system-ui, -apple-system, sans-serif;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+/* Custom Scrollbar */
+.mds-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.mds-scrollbar::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+.mds-scrollbar::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+.mds-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Product Card Styling */
+.product-card {
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  background-color: #ffffff;
+  transition: all 0.25s ease-in-out;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.product-card:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+}
+
+.product-card .image-container {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  background-color: #f8f9fa;
+}
+
+.product-card .image-container img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s ease, opacity 0.3s ease;
+}
+
+.product-card:hover .image-container .default-img {
+  opacity: 0;
+}
+
+.product-card .image-container .hover-img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  opacity: 0;
+}
+
+.product-card:hover .image-container .hover-img {
+  opacity: 1;
+  transform: scale(1.04);
+}
+
+/* Product Badges */
+.badge-discount {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background-color: #e53935;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 4px;
+  z-index: 5;
+}
+
+.badge-featured {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background-color: #00a99d;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 4px;
+  z-index: 5;
+}
+
+/* Action Overlay Buttons */
+.product-actions-overlay {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  opacity: 0;
+  transform: translateX(10px);
+  transition: all 0.25s ease;
+  z-index: 10;
+}
+
+.product-card:hover .product-actions-overlay {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.action-icon-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #ffffff;
+  color: #444444;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s, color 0.2s, transform 0.2s;
+  cursor: pointer;
+  border: none;
+}
+
+.action-icon-btn:hover {
+  background-color: #00a99d;
+  color: #ffffff;
+  transform: scale(1.08);
+}
+
+/* Category Round Items */
+.item-category-round {
+  text-align: center;
+  transition: transform 0.25s ease;
+}
+
+.item-category-round .image-wrapper {
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  margin: 0 auto 12px;
+  overflow: hidden;
+  position: relative;
+  background-color: #f1f5f9;
+  border: 3px solid #ffffff;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+}
+
+@media (max-width: 640px) {
+  .item-category-round .image-wrapper {
+    width: 90px;
+    height: 90px;
+    margin-bottom: 6px;
+  }
+}
+
+.item-category-round .image-wrapper img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.item-category-round:hover .image-wrapper img {
+  transform: scale(1.1);
+}
+
+.item-category-round .overlay-text {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 169, 157, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.item-category-round:hover .overlay-text {
+  opacity: 1;
+}
+
+/* Buttons */
+.btn-modesy-primary {
+  background-color: #00a99d;
+  color: #ffffff;
+  font-weight: 600;
+  border-radius: 6px;
+  transition: background-color 0.2s;
+}
+
+.btn-modesy-primary:hover {
+  background-color: #008f85;
+}
+
+/* Container Widths */
+.modesy-container {
+  width: 100%;
+  max-width: 1360px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
