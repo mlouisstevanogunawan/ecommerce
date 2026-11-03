@@ -1,14 +1,20 @@
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { currentUser, requireProfile, requireRole } from '@/lib/auth/session';
+import { requireProfile, requireRole } from '@/lib/auth/session';
 import { HttpError } from '@/lib/errors';
 import { money, moneyList, unwrap } from '@/lib/supabase/result';
+import { cartSubtotal } from '@/lib/pricing';
 import { slugify } from '@/lib/utils';
 import type {
+  Banner,
+  BannerPlacement,
+  BlogCategory,
   BlogPost,
   Cart,
   CartItem,
   Category,
+  ContactMessage,
+  ContactMessageStatus,
   Order,
   OrderItem,
   Product,
@@ -84,14 +90,6 @@ function mapCartRow(row: Record<string, any>): CartItem | null {
   };
 }
 
-export function unitPrice(item: { product: Product; variant?: ProductVariant | null }): number {
-  return money(item.variant?.discounted_price) || money(item.variant?.price) || money(item.product.discounted_price) || money(item.product.price);
-}
-
-function cartTotals(items: CartItem[]): number {
-  return Math.round(items.reduce((sum, item) => sum + unitPrice(item) * item.quantity, 0) * 100) / 100;
-}
-
 // PostgREST LIKE patterns are built from user text; these characters are either
 // wildcards or the separator used inside or=() filter strings.
 function likePattern(search: string): string {
@@ -158,6 +156,9 @@ export async function getProducts(params: ProductQuery = {}): Promise<Product[]>
   if (params.brand) {
     query = query.filter('details->>Brand', 'eq', params.brand);
   }
+  // ?sort=discount is linked from Special Offers and the mega menu, so it has
+  // to narrow the list to discounted items, not simply reorder everything.
+  if (params.sort === 'discount') query = query.gt('discount_rate', 0);
   if (params.minPrice !== undefined) query = query.gte('discounted_price', params.minPrice);
   if (params.maxPrice !== undefined) query = query.lte('discounted_price', params.maxPrice);
   if (params.featured) query = query.eq('is_featured', true);
@@ -168,6 +169,8 @@ export async function getProducts(params: ProductQuery = {}): Promise<Product[]>
   else if (params.sort === 'highest_price') query = query.order('discounted_price', { ascending: false });
   else if (params.sort === 'highest_rating') query = query.order('rating', { ascending: false });
   else if (params.sort === 'name_asc') query = query.order('title', { ascending: true });
+  else if (params.sort === 'popular') query = query.order('views_count', { ascending: false });
+  else if (params.sort === 'discount') query = query.order('discount_rate', { ascending: false });
   else query = query.order('created_at', { ascending: false });
 
   if (params.limit) query = query.limit(params.limit);
@@ -182,10 +185,6 @@ export async function getFeaturedProducts(limit = 8): Promise<Product[]> {
 
 export async function getSpecialOffers(limit = 8): Promise<Product[]> {
   return getProducts({ specialOffer: true, limit });
-}
-
-export async function getNewArrivals(limit = 8): Promise<Product[]> {
-  return getProducts({ limit });
 }
 
 export async function getProductBySlug(slug: string): Promise<Product | null> {
@@ -227,15 +226,6 @@ export async function getReviews(productId: string): Promise<ProductReview[]> {
   })) as unknown as ProductReview[];
 }
 
-export async function getProductById(id: string): Promise<Product | null> {
-  const supabase = await createClient();
-  const row = unwrap(
-    await supabase.from('products').select(PRODUCT_SELECT).eq('id', id).maybeSingle(),
-    'Load product',
-  );
-  return mapProduct(row);
-}
-
 export async function getRelatedProducts(product: Product, limit = 4): Promise<Product[]> {
   const supabase = await createClient();
   const rows = unwrap(
@@ -249,6 +239,17 @@ export async function getRelatedProducts(product: Product, limit = 4): Promise<P
     'Load related products',
   );
   return (rows ?? []).map(mapProduct).filter((p): p is Product => p !== null);
+}
+
+// The brand list used to be a hardcoded array in the filter sidebar, so it
+// advertised brands the catalogue did not carry. This reads the distinct values
+// actually stored in products.details->>'Brand'.
+export async function getProductBrands(): Promise<string[]> {
+  const supabase = await createClient();
+  const rows = unwrap(await supabase.rpc('product_brands'), 'Load brands');
+  return (rows ?? [])
+    .map((row: { brand: string }) => row.brand)
+    .filter((brand: string) => brand.length > 0);
 }
 
 // STORES ---------------------------------------------------------------------
@@ -268,6 +269,42 @@ export async function getShopBySlug(slug: string): Promise<{ store: Store; produ
 
   const store = moneyList([row], STORE_MONEY)[0] as unknown as Store;
   return { store, products: await getProducts({ storeId: store.id }) };
+}
+
+// The Follow button used to fake a follower count out of local state. Both
+// numbers come from the database: the count is a public aggregate, the flag is
+// the caller's own row.
+export async function getStoreFollowInfo(storeId: string): Promise<{ followers: number; isFollowing: boolean }> {
+  const supabase = await createClient();
+  const followers = unwrap(await supabase.rpc('store_follower_count', { p_store_id: storeId }), 'Load follower count');
+  const isFollowing = unwrap(await supabase.rpc('is_following_store', { p_store_id: storeId }), 'Load follow state');
+  return { followers: Number(followers ?? 0), isFollowing: Boolean(isFollowing) };
+}
+
+export async function toggleFollowStore(storeId: string): Promise<{ followers: number; isFollowing: boolean }> {
+  const profile = await requireProfile();
+  const supabase = await createClient();
+
+  const existing = unwrap(
+    await supabase.from('store_follows').select('id').eq('store_id', storeId).eq('user_id', profile.id).maybeSingle(),
+    'Load follow',
+  );
+
+  if (existing) {
+    const { error } = await supabase
+      .from('store_follows')
+      .delete()
+      .eq('id', existing.id)
+      .eq('user_id', profile.id);
+    unwrap({ data: null, error }, 'Unfollow store');
+  } else {
+    const { error } = await supabase
+      .from('store_follows')
+      .insert({ store_id: storeId, user_id: profile.id });
+    unwrap({ data: null, error }, 'Follow store');
+  }
+
+  return getStoreFollowInfo(storeId);
 }
 
 export async function getMyStore(): Promise<Store | null> {
@@ -382,11 +419,257 @@ export async function getBlogPostBySlug(slug: string): Promise<BlogPost | null> 
   return (row as unknown as BlogPost) ?? null;
 }
 
+// ADMIN BLOG CMS -------------------------------------------------------------
+// Writes are admin-only in the database (blog_posts_*_admin policies), so an
+// authenticated non-admin cannot change content even through the REST endpoint.
+
+export interface BlogPostInput {
+  title: string;
+  slug: string;
+  content: string;
+  excerpt?: string | null;
+  image_url?: string | null;
+  published: boolean;
+  category_id: string;
+}
+
+function blogPostValues(input: BlogPostInput) {
+  return {
+    title: input.title.trim(),
+    slug: input.slug.trim(),
+    content: input.content,
+    excerpt: input.excerpt?.trim() || null,
+    image_url: input.image_url?.trim() || null,
+    published: input.published,
+    category_id: input.category_id,
+  };
+}
+
+export async function getAdminBlogPosts(): Promise<BlogPost[]> {
+  await requireRole(['admin']);
+  const supabase = await createClient();
+  const rows = unwrap(
+    await supabase
+      .from('blog_posts')
+      .select('*, category:blog_categories(name, slug)')
+      .order('created_at', { ascending: false }),
+    'Load blog posts',
+  );
+  return (rows ?? []) as unknown as BlogPost[];
+}
+
+export async function saveBlogPost(input: BlogPostInput & { id?: string }): Promise<BlogPost> {
+  await requireRole(['admin']);
+  const supabase = await createClient();
+
+  // blog_posts.slug is UNIQUE; a clash is checked here so the manager can show a readable
+  // message instead of a 502 carrying a Postgres constraint name.
+  const clash = unwrap(
+    await supabase
+      .from('blog_posts')
+      .select('id')
+      .eq('slug', input.slug.trim())
+      .neq('id', input.id ?? '00000000-0000-0000-0000-000000000000')
+      .maybeSingle(),
+    'Check blog slug',
+  );
+  if (clash) throw new HttpError(409, 'That slug is already used by another post');
+
+  const query = input.id
+    ? supabase.from('blog_posts').update(blogPostValues(input)).eq('id', input.id)
+    : supabase.from('blog_posts').insert(blogPostValues(input));
+
+  const row = unwrap(
+    await query.select('*, category:blog_categories(name, slug)').maybeSingle(),
+    input.id ? 'Update blog post' : 'Create blog post',
+  );
+  if (!row) throw new HttpError(404, 'That blog post does not exist');
+  return row as unknown as BlogPost;
+}
+
+export async function deleteBlogPost(postId: string): Promise<void> {
+  await requireRole(['admin']);
+  const supabase = await createClient();
+  const removed = unwrap(
+    await supabase.from('blog_posts').delete().eq('id', postId).select('id'),
+    'Delete blog post',
+  );
+  if ((removed ?? []).length === 0) throw new HttpError(404, 'That blog post does not exist');
+}
+
+export async function getBlogCategories(): Promise<BlogCategory[]> {
+  await requireRole(['admin']);
+  const supabase = await createClient();
+  const rows = unwrap(
+    await supabase.from('blog_categories').select('id, name, slug, posts:blog_posts(count)').order('name'),
+    'Load blog categories',
+  );
+  return (rows ?? []).map((row: Record<string, any>) => ({
+    id: row.id as string,
+    name: row.name as string,
+    slug: row.slug as string,
+    post_count: Number(row.posts?.[0]?.count ?? 0),
+  }));
+}
+
+export async function createBlogCategory(name: string): Promise<BlogCategory> {
+  await requireRole(['admin']);
+  const supabase = await createClient();
+  const slug = slugify(name);
+  const clash = unwrap(
+    await supabase.from('blog_categories').select('id').eq('slug', slug).maybeSingle(),
+    'Check blog category',
+  );
+  if (clash) throw new HttpError(409, 'A blog category with that name already exists');
+
+  const row = unwrap(
+    await supabase.from('blog_categories').insert({ name: name.trim(), slug }).select('id, name, slug').single(),
+    'Create blog category',
+  );
+  if (!row) throw new HttpError(502, 'The blog category was created but not returned');
+  return { id: row.id, name: row.name, slug: row.slug, post_count: 0 };
+}
+
+// A category owns its posts through ON DELETE CASCADE, so the caller has to say
+// in advance how many posts would disappear with it.
+export async function deleteBlogCategory(categoryId: string): Promise<void> {
+  await requireRole(['admin']);
+  const supabase = await createClient();
+  const removed = unwrap(
+    await supabase.from('blog_categories').delete().eq('id', categoryId).select('id'),
+    'Delete blog category',
+  );
+  if ((removed ?? []).length === 0) throw new HttpError(404, 'That blog category does not exist');
+}
+
 export async function getSiteSettings(): Promise<SiteSettings> {
   const supabase = await createClient();
   const row = unwrap(await supabase.from('site_settings').select('*').limit(1).maybeSingle(), 'Load site settings');
   if (!row) throw new HttpError(500, 'site_settings has no row. Apply the seed data or create one in the database.');
   return row as SiteSettings;
+}
+
+// Admin-only: the footer, the contact page and the document title all read this
+// row, so the values have to be editable somewhere other than the database.
+export async function updateSiteSettings(input: {
+  site_title: string;
+  site_description: string;
+  contact_email: string;
+  contact_phone: string;
+  address: string;
+  facebook_url?: string | null;
+  instagram_url?: string | null;
+  twitter_url?: string | null;
+  youtube_url?: string | null;
+}): Promise<SiteSettings> {
+  await requireRole(['admin']);
+  const supabase = await createClient();
+  const row = unwrap(
+    await supabase
+      .from('site_settings')
+      .update({
+        site_title: input.site_title,
+        site_description: input.site_description,
+        contact_email: input.contact_email,
+        contact_phone: input.contact_phone,
+        address: input.address,
+        facebook_url: input.facebook_url || null,
+        instagram_url: input.instagram_url || null,
+        twitter_url: input.twitter_url || null,
+        youtube_url: input.youtube_url || null,
+      })
+      .eq('id', (await getSiteSettings()).id)
+      .select('*')
+      .single(),
+    'Save site settings',
+  );
+  return row as SiteSettings;
+}
+
+// The footer form used to only flip a local "subscribed" flag. An address is
+// stored now; re-subscribing the same address is treated as success, not an
+// error, because the unique index is on lower(email).
+export async function subscribeNewsletter(email: string): Promise<void> {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from('newsletter_subscribers')
+    .insert({ email: email.trim().toLowerCase() });
+  // The address is already on the list — that is a success, not a failure.
+  if (error?.code === '23505') return;
+  unwrap({ data: null, error }, 'Subscribe to newsletter');
+}
+
+// BANNERS --------------------------------------------------------------------
+
+export async function getBanners(placement: BannerPlacement): Promise<Banner[]> {
+  const supabase = await createClient();
+  const rows = unwrap(
+    await supabase
+      .from('banners')
+      .select('*')
+      .eq('placement', placement)
+      .eq('is_active', true)
+      .order('sort_order', { ascending: true }),
+    'Load banners',
+  );
+  return (rows ?? []) as unknown as Banner[];
+}
+
+export async function getAllBanners(): Promise<Banner[]> {
+  await requireRole(['admin']);
+  const supabase = await createClient();
+  const rows = unwrap(
+    await supabase.from('banners').select('*').order('placement').order('sort_order', { ascending: true }),
+    'Load banners',
+  );
+  return (rows ?? []) as unknown as Banner[];
+}
+
+export async function saveBanner(input: {
+  id?: string;
+  placement: BannerPlacement;
+  category_id?: string | null;
+  title: string;
+  subtitle?: string | null;
+  button_text?: string | null;
+  link_url: string;
+  image_url?: string | null;
+  background_color?: string | null;
+  sort_order?: number;
+  is_active?: boolean;
+}): Promise<Banner> {
+  await requireRole(['admin']);
+  const supabase = await createClient();
+
+  const values = {
+    placement: input.placement,
+    category_id: input.placement === 'category_showcase' ? (input.category_id ?? null) : null,
+    title: input.title,
+    subtitle: input.subtitle || null,
+    button_text: input.button_text || null,
+    link_url: input.link_url,
+    image_url: input.image_url || null,
+    background_color: input.background_color || null,
+    sort_order: input.sort_order ?? 0,
+    is_active: input.is_active !== false,
+  };
+
+  const row = unwrap(
+    input.id
+      ? await supabase.from('banners').update(values).eq('id', input.id).select('*').maybeSingle()
+      : await supabase.from('banners').insert(values).select('*').single(),
+    'Save banner',
+  );
+  if (!row) throw new HttpError(404, 'That banner no longer exists.');
+  return row as unknown as Banner;
+}
+
+export async function deleteBanner(bannerId: string): Promise<void> {
+  await requireRole(['admin']);
+  const supabase = await createClient();
+  const { data, error } = await supabase.from('banners').delete().eq('id', bannerId).select('id');
+  unwrap({ data, error }, 'Delete banner');
+  if (!data || data.length === 0) throw new HttpError(404, 'That banner no longer exists.');
 }
 
 // CART (authenticated only) --------------------------------------------------
@@ -407,7 +690,7 @@ async function loadCart(cartId: string, profile: Profile): Promise<Cart> {
   );
 
   const items = (rows ?? []).map(mapCartRow).filter((i): i is CartItem => i !== null);
-  const subtotal = cartTotals(items);
+  const subtotal = cartSubtotal(items);
   return { id: cartId, user_id: profile.id, items, subtotal, discount: 0, total: subtotal };
 }
 
@@ -530,6 +813,137 @@ export async function toggleWishlist(productId: string): Promise<{ inWishlist: b
     'Add to wishlist',
   );
   return { inWishlist: true };
+}
+
+// ACCOUNT --------------------------------------------------------------------
+// Profile and address book. `authenticated` may only write full_name, phone and
+// avatar_url on profiles (migration 022), so a direct REST call with a user JWT
+// cannot promote itself; role changes stay on the admin route's service client.
+
+export interface ProfileInput {
+  full_name: string;
+  phone?: string | null;
+  avatar_url?: string | null;
+}
+
+export interface AddressInput {
+  title: string;
+  first_name: string;
+  last_name: string;
+  phone: string;
+  address_line1: string;
+  address_line2?: string | null;
+  country: string;
+  state: string;
+  city: string;
+  postal_code: string;
+}
+
+function addressValues(input: AddressInput) {
+  const optional = (value?: string | null) => (value?.trim() ? value.trim() : null);
+  return {
+    title: input.title.trim(),
+    first_name: input.first_name.trim(),
+    last_name: input.last_name.trim(),
+    phone: input.phone.trim(),
+    address_line1: input.address_line1.trim(),
+    address_line2: optional(input.address_line2),
+    country: input.country.trim(),
+    state: input.state.trim(),
+    city: input.city.trim(),
+    postal_code: input.postal_code.trim(),
+  };
+}
+
+export async function updateMyProfile(input: ProfileInput): Promise<Profile> {
+  const profile = await requireProfile();
+  const supabase = await createClient();
+  return unwrap(
+    await supabase
+      .from('profiles')
+      .update({
+        full_name: input.full_name.trim(),
+        phone: input.phone?.trim() || null,
+        avatar_url: input.avatar_url?.trim() || null,
+      })
+      .eq('id', profile.id)
+      .select('*')
+      .single(),
+    'Save profile',
+  ) as Profile;
+}
+
+export async function getMyAddresses(): Promise<UserAddress[]> {
+  const profile = await requireProfile();
+  const supabase = await createClient();
+  const rows = unwrap(
+    await supabase
+      .from('user_addresses')
+      .select('*')
+      .eq('user_id', profile.id)
+      .order('is_default', { ascending: false })
+      .order('created_at', { ascending: false }),
+    'Load saved addresses',
+  );
+  return (rows ?? []) as UserAddress[];
+}
+
+export async function createMyAddress(input: AddressInput): Promise<UserAddress> {
+  const profile = await requireProfile();
+  const supabase = await createClient();
+  // is_default is left to the database: the first address of a user becomes the default.
+  return unwrap(
+    await supabase
+      .from('user_addresses')
+      .insert({ user_id: profile.id, ...addressValues(input) })
+      .select('*')
+      .single(),
+    'Save address',
+  ) as UserAddress;
+}
+
+export async function updateMyAddress(addressId: string, input: AddressInput): Promise<UserAddress> {
+  const profile = await requireProfile();
+  const supabase = await createClient();
+  const row = unwrap(
+    await supabase
+      .from('user_addresses')
+      .update(addressValues(input))
+      .eq('id', addressId)
+      .eq('user_id', profile.id)
+      .select('*')
+      .maybeSingle(),
+    'Update address',
+  );
+  if (!row) throw new HttpError(404, 'That address is not in your account');
+  return row as UserAddress;
+}
+
+export async function deleteMyAddress(addressId: string): Promise<void> {
+  const profile = await requireProfile();
+  const supabase = await createClient();
+  const removed = unwrap(
+    await supabase
+      .from('user_addresses')
+      .delete()
+      .eq('id', addressId)
+      .eq('user_id', profile.id)
+      .select('id'),
+    'Delete address',
+  );
+  if ((removed ?? []).length === 0) throw new HttpError(404, 'That address is not in your account');
+}
+
+export async function setDefaultMyAddress(addressId: string): Promise<UserAddress> {
+  const profile = await requireProfile();
+  const supabase = await createClient();
+  const rows = unwrap(
+    await supabase.rpc('set_default_address', { p_address_id: addressId }),
+    'Set default address',
+  );
+  const row = (rows ?? [])[0] as UserAddress | undefined;
+  if (!row) throw new HttpError(404, 'That address is not in your account');
+  return row;
 }
 
 // CHECKOUT -------------------------------------------------------------------
@@ -710,15 +1124,6 @@ export async function getSellerOrders(): Promise<Order[]> {
   return (rows ?? []).map((row: Record<string, any>) => mapOrder(row, mapOrderItems(row.items ?? [])));
 }
 
-export async function getSellerStats(): Promise<{ totalSales: number; totalRevenue: number; openOrders: number }> {
-  const orders = await getSellerOrders();
-  return {
-    totalSales: orders.length,
-    totalRevenue: Math.round(orders.reduce((sum, order) => sum + money(order.total), 0) * 100) / 100,
-    openOrders: orders.filter((order) => order.status === 'pending' || order.status === 'processing').length,
-  };
-}
-
 export async function createProduct(input: {
   title: string;
   slug: string;
@@ -852,6 +1257,31 @@ export async function submitReview(productId: string, rating: number, reviewText
 
 // ADMIN ----------------------------------------------------------------------
 
+// Public counters for the about page. These are counted under the same RLS
+// policies a visitor is subject to, so the numbers describe what is actually
+// browsable rather than the whole table.
+export async function getPlatformStats(): Promise<{ products: number; stores: number; categories: number; reviews: number }> {
+  const supabase = await createClient();
+  const [products, stores, categories, reviews] = await Promise.all([
+    supabase.from('products').select('id', { count: 'exact', head: true }).eq('status', 'published'),
+    supabase.from('stores').select('id', { count: 'exact', head: true }),
+    supabase.from('categories').select('id', { count: 'exact', head: true }),
+    supabase.from('product_reviews').select('id', { count: 'exact', head: true }),
+  ]);
+
+  unwrap(products, 'Count products');
+  unwrap(stores, 'Count stores');
+  unwrap(categories, 'Count categories');
+  unwrap(reviews, 'Count reviews');
+
+  return {
+    products: products.count ?? 0,
+    stores: stores.count ?? 0,
+    categories: categories.count ?? 0,
+    reviews: reviews.count ?? 0,
+  };
+}
+
 export async function getAdminStats() {
   await requireRole(['admin']);
   const supabase = await createClient();
@@ -975,14 +1405,36 @@ export async function deleteCategory(categoryId: string): Promise<void> {
   unwrap({ data: null, error }, 'Delete category');
 }
 
-export async function getContactMessages() {
+export async function getContactMessages(): Promise<ContactMessage[]> {
   await requireRole(['admin']);
   const supabase = await createClient();
   const rows = unwrap(
-    await supabase.from('contact_messages').select('*').order('created_at', { ascending: false }),
+    await supabase
+      .from('contact_messages')
+      .select('id, name, email, subject, message, status, product_id, created_at, product:products!contact_messages_product_id_fkey (slug, title)')
+      // 'unread' > 'read', so descending opens the inbox on what nobody has handled yet.
+      .order('status', { ascending: false })
+      .order('created_at', { ascending: false }),
     'Load messages',
   );
-  return rows ?? [];
+  return (rows ?? []) as unknown as ContactMessage[];
+}
+
+// Only the two states the contact_messages_status_check constraint allows, and the
+// row is read back to prove the write landed instead of assuming it did.
+export async function markContactMessage(id: string, status: ContactMessageStatus): Promise<void> {
+  await requireRole(['admin']);
+  const supabase = await createClient();
+  const row = unwrap(
+    await supabase
+      .from('contact_messages')
+      .update({ status })
+      .eq('id', id)
+      .select('id')
+      .maybeSingle(),
+    'Update message status',
+  );
+  if (!row) throw new HttpError(404, 'That message no longer exists.');
 }
 
 export async function submitContactMessage(input: {

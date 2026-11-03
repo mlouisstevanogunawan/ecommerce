@@ -1,5 +1,3 @@
-import React from 'react';
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import {
   ChevronRight,
@@ -12,7 +10,7 @@ import {
   Heart,
   Store,
 } from 'lucide-react';
-import { getShopBySlug } from '@/lib/supabase/data';
+import { getShopBySlug, getStoreFollowInfo } from '@/lib/supabase/data';
 import { ProductCard } from '@/components/products/ProductCard';
 import { SellerProfileActions } from '@/components/profile/SellerProfileActions';
 
@@ -20,7 +18,9 @@ interface ProfilePageProps {
   params: Promise<{ slug: string }>;
 }
 
-export const revalidate = 30;
+// The follow state is per-visitor, so this page cannot be cached and replayed
+// to somebody else.
+export const dynamic = 'force-dynamic';
 
 export default async function SellerProfilePage({ params }: ProfilePageProps) {
   const { slug } = await params;
@@ -31,16 +31,21 @@ export default async function SellerProfilePage({ params }: ProfilePageProps) {
   }
 
   const { store, products } = data;
+  const follow = await getStoreFollowInfo(store.id);
 
   return (
     <div className="bg-gray-50 min-h-screen pb-12">
       {/* 1. Full-width Store Cover Banner */}
       <div className="relative w-full h-56 sm:h-72 lg:h-80 bg-gray-900 overflow-hidden">
-        <img
-          src={store.cover_url || 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1600&q=80'}
-          alt={`${store.title} Cover`}
-          className="w-full h-full object-cover opacity-80"
-        />
+        {store.cover_url ? (
+          <img
+            src={store.cover_url}
+            alt={`${store.title} Cover`}
+            className="w-full h-full object-cover opacity-80"
+          />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-gray-800 to-gray-600" />
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
       </div>
 
@@ -51,11 +56,13 @@ export default async function SellerProfilePage({ params }: ProfilePageProps) {
             <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 text-center sm:text-left">
               {/* Store Avatar */}
               <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full border-4 border-white shadow-md overflow-hidden bg-white shrink-0">
-                <img
-                  src={store.logo_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&q=80'}
-                  alt={store.title}
-                  className="w-full h-full object-cover"
-                />
+                {store.logo_url ? (
+                  <img src={store.logo_url} alt={store.title} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-500 font-black text-2xl uppercase">
+                    {store.title.slice(0, 2)}
+                  </div>
+                )}
               </div>
 
               {/* Store Details */}
@@ -96,7 +103,7 @@ export default async function SellerProfilePage({ params }: ProfilePageProps) {
             </div>
 
             {/* Follow & Message Client Actions */}
-            <SellerProfileActions store={store} />
+            <SellerProfileActions store={store} initialFollowers={follow.followers} initialIsFollowing={follow.isFollowing} />
           </div>
 
           {/* Stats Summary Bar */}
@@ -110,8 +117,8 @@ export default async function SellerProfilePage({ params }: ProfilePageProps) {
               <span className="text-gray-400">Total Orders Fulfilled</span>
             </div>
             <div>
-              <span className="font-extrabold text-gray-900 text-lg block">99.8%</span>
-              <span className="text-gray-400">Positive Feedback</span>
+              <span className="font-extrabold text-gray-900 text-lg block">{follow.followers}</span>
+              <span className="text-gray-400">Followers</span>
             </div>
           </div>
         </div>

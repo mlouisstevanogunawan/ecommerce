@@ -2,15 +2,34 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Mail, ArrowLeft, Send, CheckCircle2 } from 'lucide-react';
+import { Mail, ArrowLeft, Send, CheckCircle2, AlertCircle } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
   const [sent, setSent] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Ask Supabase Auth for a real recovery email. The link lands on /auth/callback,
+  // exchanges its code for a session, and continues to /reset-password.
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim()) return;
+
+    setLoading(true);
+    setErrorMessage('');
+
+    const supabase = createClient();
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
+      redirectTo: `${window.location.origin}/auth/callback?next=%2Freset-password`,
+    });
+
+    setLoading(false);
+    if (error) {
+      setErrorMessage(error.message);
+      return;
+    }
     setSent(true);
   };
 
@@ -28,9 +47,10 @@ export default function ForgotPasswordPage() {
           {sent ? (
             <div className="p-6 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-lg text-center space-y-3">
               <CheckCircle2 className="w-8 h-8 text-emerald-600 mx-auto" />
-              <h4 className="font-bold text-sm">Recovery Link Sent!</h4>
+              <h4 className="font-bold text-sm">Request submitted</h4>
               <p className="text-xs text-emerald-700">
-                Check your inbox for <strong>{email}</strong> for instructions to reset your password.
+                If <strong>{email}</strong> belongs to an account, Supabase has queued a password
+                recovery link for it. Open the link and choose a new password.
               </p>
               <Link
                 href="/login"
@@ -41,10 +61,18 @@ export default function ForgotPasswordPage() {
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
+              {errorMessage && (
+                <div className="p-3 bg-rose-50 border border-rose-200 text-rose-800 rounded text-xs font-semibold flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+                  <span>{errorMessage}</span>
+                </div>
+              )}
+
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">Email Address *</label>
+                <label htmlFor="recovery-email" className="block text-xs font-bold text-gray-700 mb-1">Email Address *</label>
                 <div className="relative">
                   <input
+                    id="recovery-email"
                     type="email"
                     required
                     placeholder="e.g. user@example.com"
@@ -58,10 +86,11 @@ export default function ForgotPasswordPage() {
 
               <button
                 type="submit"
-                className="w-full py-2.5 bg-brand hover:bg-brand-dark text-white rounded text-xs font-bold transition flex items-center justify-center gap-2 shadow-xs"
+                disabled={loading}
+                className="w-full py-2.5 bg-brand hover:bg-brand-dark text-white rounded text-xs font-bold transition flex items-center justify-center gap-2 shadow-xs disabled:opacity-50"
               >
                 <Send className="w-4 h-4" />
-                <span>Send Reset Link</span>
+                <span>{loading ? 'Sending...' : 'Send Reset Link'}</span>
               </button>
             </form>
           )}

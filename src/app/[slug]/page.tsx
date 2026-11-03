@@ -1,4 +1,3 @@
-import React from 'react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ChevronRight } from 'lucide-react';
@@ -52,7 +51,6 @@ export default async function ProductDetailPage({ params }: ProductPageProps) {
         <div className="bg-white rounded-lg border border-gray-200 p-6 sm:p-8 mb-8 shadow-xs">
           <ProductDetailView
             product={product}
-            relatedProducts={relatedProducts}
             reviews={reviews}
             freeShippingThreshold={rules.free_shipping_threshold}
             flatShippingFee={rules.flat_shipping_fee}
@@ -66,12 +64,14 @@ export default async function ProductDetailPage({ params }: ProductPageProps) {
               <h3 className="text-xl font-bold text-gray-900 tracking-tight">
                 Related Products
               </h3>
-              <Link
-                href={`/categories/${product.category?.slug || 'clothing'}`}
-                className="text-xs font-bold text-brand hover:underline"
-              >
-                View More
-              </Link>
+              {product.category && (
+                <Link
+                  href={`/categories/${product.category.slug}`}
+                  className="text-xs font-bold text-brand hover:underline"
+                >
+                  View More
+                </Link>
+              )}
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">

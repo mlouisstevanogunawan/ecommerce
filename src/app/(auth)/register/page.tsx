@@ -60,7 +60,7 @@ export default function RegisterPage() {
           <div className="text-center mb-6">
             <h1 className="text-2xl font-extrabold text-gray-900">Create Account</h1>
             <p className="text-xs text-gray-500 mt-1">
-              Join thousands of buyers and multi-vendor sellers on Modesy.
+              Create an account to track orders, or open a store and list your own products.
             </p>
           </div>
 
@@ -89,7 +89,7 @@ export default function RegisterPage() {
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Alex Morgan"
+                  placeholder="Enter your full name"
                   value={form.fullName}
                   onChange={(e) => setForm({ ...form, fullName: e.target.value })}
                   className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded text-xs focus:outline-none focus:border-brand"

@@ -1,4 +1,3 @@
-import React from 'react';
 import Link from 'next/link';
 import { ShoppingBag, Eye } from 'lucide-react';
 import { getAllOrders } from '@/lib/supabase/data';

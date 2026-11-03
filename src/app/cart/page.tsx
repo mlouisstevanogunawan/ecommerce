@@ -14,6 +14,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { useCart } from '@/components/cart/CartProvider';
+import { unitPrice } from '@/lib/pricing';
 import { Price } from '@/components/currency/Price';
 import { useTranslation } from '@/components/i18n/I18nProvider';
 
@@ -195,9 +196,9 @@ export default function CartPage() {
 
               <div className="divide-y divide-gray-100">
                 {cart.items.map((item) => {
-                  const itemImg = item.product.images?.[0]?.image_url || 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=200&q=80';
-                  const unitPrice = item.variant ? item.variant.price : item.product.discounted_price;
-                  const lineTotal = unitPrice * item.quantity;
+                  const itemImg = item.product.images?.[0]?.image_url || '/placeholder-product.svg';
+                  const unit = unitPrice(item);
+                  const lineTotal = unit * item.quantity;
 
                   return (
                     <div
@@ -224,14 +225,14 @@ export default function CartPage() {
                             </div>
                           )}
                           <div className="sm:hidden text-xs font-bold text-gray-900 pt-1">
-                            <Price amount={unitPrice} />
+                            <Price amount={unit} />
                           </div>
                         </div>
                       </div>
 
                       {/* Unit Price (Desktop) */}
                       <div className="hidden sm:block sm:col-span-2 text-center text-sm font-semibold text-gray-800">
-                        <Price amount={unitPrice} />
+                        <Price amount={unit} />
                       </div>
 
                       {/* Quantity Controls */}
@@ -417,7 +418,7 @@ export default function CartPage() {
 
               <div className="pt-4 border-t border-gray-100 flex items-center justify-center gap-2 text-[11px] text-gray-400">
                 <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                <span>Guaranteed Safe & Secure Checkout</span>
+                <span>Orders are saved to your signed-in account</span>
               </div>
             </div>
           </div>

@@ -69,7 +69,7 @@ export function ContactForm() {
             required
             minLength={2}
             maxLength={120}
-            placeholder="e.g. John Doe"
+            placeholder="Your full name"
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
             className="w-full px-3 py-2 border border-gray-300 rounded text-xs focus:outline-none focus:border-brand"

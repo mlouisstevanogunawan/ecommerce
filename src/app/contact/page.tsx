@@ -1,4 +1,3 @@
-import React from 'react';
 import Link from 'next/link';
 import { Mail, Phone, MapPin, ChevronRight } from 'lucide-react';
 import { getSiteSettings } from '@/lib/supabase/data';

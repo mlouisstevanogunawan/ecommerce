@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Settings, Save, CheckCircle, AlertCircle } from 'lucide-react';
 import type { Store } from '@/lib/types';
+import { ImageUpload } from '@/components/forms/ImageUpload';
 
 type Notice = { kind: 'ok' | 'err'; text: string } | null;
 
@@ -176,10 +177,11 @@ export function StoreSettingsForm({ store }: { store: Store | null }) {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-2 border-t border-gray-100">
           <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1">Store Avatar URL</label>
-            <div className="flex gap-3 items-center">
+            <label className="block text-xs font-bold text-gray-700 mb-1">Store Avatar</label>
+            <div className="flex gap-3 items-center mb-2">
               <div className="w-12 h-12 rounded-full overflow-hidden border border-gray-200 shrink-0 bg-gray-50">
                 {form.logo_url ? (
+                   
                   <img src={form.logo_url} alt="avatar" className="w-full h-full object-cover" />
                 ) : null}
               </div>
@@ -191,13 +193,15 @@ export function StoreSettingsForm({ store }: { store: Store | null }) {
                 className="w-full px-3 py-2 border border-gray-300 rounded text-xs font-mono focus:outline-none focus:border-brand"
               />
             </div>
+            <ImageUpload bucket="avatars" value={form.logo_url} onChange={(url) => set('logo_url', url)} label="Upload store avatar" />
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1">Cover Banner URL</label>
-            <div className="flex gap-3 items-center">
+            <label className="block text-xs font-bold text-gray-700 mb-1">Cover Banner</label>
+            <div className="flex gap-3 items-center mb-2">
               <div className="w-20 h-12 rounded overflow-hidden border border-gray-200 shrink-0 bg-gray-50">
                 {form.cover_url ? (
+                   
                   <img src={form.cover_url} alt="cover" className="w-full h-full object-cover" />
                 ) : null}
               </div>
@@ -209,6 +213,7 @@ export function StoreSettingsForm({ store }: { store: Store | null }) {
                 className="w-full px-3 py-2 border border-gray-300 rounded text-xs font-mono focus:outline-none focus:border-brand"
               />
             </div>
+            <ImageUpload bucket="covers" value={form.cover_url} onChange={(url) => set('cover_url', url)} label="Upload cover banner" />
           </div>
         </div>
 

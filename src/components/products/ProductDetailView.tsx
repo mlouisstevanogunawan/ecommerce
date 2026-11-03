@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -9,7 +9,6 @@ import {
   Star,
   ShieldCheck,
   Truck,
-  RotateCcw,
   MessageCircle,
   HelpCircle,
   Share2,
@@ -21,11 +20,11 @@ import {
 import { Product, ProductVariant, ProductReview } from '@/lib/types';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { Price } from '@/components/currency/Price';
+import { effectivePrice } from '@/lib/pricing';
 import { useCart } from '@/components/cart/CartProvider';
 
 interface ProductDetailViewProps {
   product: Product;
-  relatedProducts: Product[];
   reviews: ProductReview[];
   freeShippingThreshold: number;
   flatShippingFee: number;
@@ -33,7 +32,6 @@ interface ProductDetailViewProps {
 
 export function ProductDetailView({
   product,
-  relatedProducts,
   reviews,
   freeShippingThreshold,
   flatShippingFee,
@@ -148,13 +146,18 @@ export function ProductDetailView({
     }
   }
 
-  // WhatsApp link generator
+  // WhatsApp link generator. The page URL only exists in the browser, so it is
+  // filled in after mount; reading window during render would make the server
+  // and client markup disagree and React would discard the hydrated tree.
+  const [pageUrl, setPageUrl] = useState('');
+  useEffect(() => {
+    setPageUrl(window.location.href);
+  }, []);
+
   const sellerPhone = product.store?.phone?.replace(/[^0-9]/g, '') ?? '';
   const whatsappUrl = sellerPhone
     ? `https://wa.me/${sellerPhone}?text=${encodeURIComponent(
-        `Hello, I am inquiring about "${product.title}" listed on Modesy (${
-          typeof window !== 'undefined' ? window.location.href : ''
-        })`
+        `Hello, I am inquiring about "${product.title}" listed on Modesy (${pageUrl})`
       )}`
     : null;
 
@@ -260,7 +263,7 @@ export function ProductDetailView({
               <div>
                 <div className="flex items-baseline gap-3">
                   <span className="text-3xl font-extrabold text-brand">
-                    <Price amount={selectedVariant ? selectedVariant.price : product.discounted_price} />
+                    <Price amount={effectivePrice(selectedVariant, product)} />
                   </span>
                   {product.discount_rate > 0 && (
                     <del className="text-sm text-gray-400 font-medium">
@@ -404,19 +407,21 @@ export function ProductDetailView({
               </div>
             </div>
 
-            {/* Trust Assurances */}
+            {/* Store facts — each line is backed by checkout_rules() or the product row */}
             <div className="pt-6 border-t border-gray-100 grid grid-cols-3 gap-2 text-center text-xs text-gray-500">
               <div className="flex flex-col items-center gap-1">
                 <Truck className="w-4 h-4 text-brand" />
-                <span>Fast Shipping</span>
+                <span>
+                  Free shipping over <Price amount={freeShippingThreshold} />
+                </span>
               </div>
               <div className="flex flex-col items-center gap-1">
-                <RotateCcw className="w-4 h-4 text-brand" />
-                <span>30-Day Returns</span>
+                <MessageCircle className="w-4 h-4 text-brand" />
+                <span>Ask this vendor a question</span>
               </div>
               <div className="flex flex-col items-center gap-1">
                 <ShieldCheck className="w-4 h-4 text-brand" />
-                <span>Secure Checkout</span>
+                <span>Stock re-checked when you order</span>
               </div>
             </div>
           </div>

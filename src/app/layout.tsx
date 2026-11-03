@@ -8,7 +8,7 @@ import { CartProvider } from '@/components/cart/CartProvider';
 import { AddedToCartModal } from '@/components/cart/AddedToCartModal';
 import { CookiesWarning } from '@/components/layout/CookiesWarning';
 import { ScrollUpButton } from '@/components/layout/ScrollUpButton';
-import { getCategories } from '@/lib/supabase/data';
+import { getCategories, getSiteSettings } from '@/lib/supabase/data';
 import { getExchangeRates } from '@/lib/currency/rates';
 import { CurrencyProvider } from '@/components/currency/CurrencyProvider';
 import { I18nProvider } from '@/components/i18n/I18nProvider';
@@ -21,24 +21,30 @@ const inter = Inter({
   display: 'swap',
 });
 
-export const metadata: Metadata = {
-  title: 'Home - Modesy - Marketplace',
-  description: 'Modesy is a modern multi-vendor marketplace where buyers and sellers connect with ease.',
-  keywords: 'marketplace, e-commerce, shop, multi-vendor, buy, sell',
-  openGraph: {
-    title: 'Modesy - Marketplace',
-    description: 'Modern multi-vendor e-commerce platform',
-    type: 'website',
-  },
-};
+// The title and description are the admin-editable site settings, not a
+// hardcoded string, so /admin/settings is the only place they are written.
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getSiteSettings();
+  return {
+    title: settings.site_title,
+    description: settings.site_description,
+    keywords: 'marketplace, e-commerce, shop, multi-vendor, buy, sell',
+    openGraph: {
+      title: settings.site_title,
+      description: settings.site_description,
+      type: 'website',
+    },
+  };
+}
 
 export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const [categories, cookieStore, headerList, ratesData] = await Promise.all([
+  const [categories, settings, cookieStore, headerList, ratesData] = await Promise.all([
     getCategories(),
+    getSiteSettings(),
     cookies(),
     headers(),
     getExchangeRates(),
@@ -70,11 +76,12 @@ export default async function RootLayout({
             initialCurrency={currency}
             initialRates={ratesData.rates}
             isFallback={ratesData.isFallback}
+            missingRates={ratesData.missing ?? []}
           >
             <CartProvider>
               <Header categories={categories} />
               <main className="flex-1">{children}</main>
-              <Footer />
+              <Footer categories={categories} settings={settings} />
               <AddedToCartModal />
               <CookiesWarning />
               <ScrollUpButton />

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Users, Shield, Store, User, CheckCircle, AlertCircle } from 'lucide-react';
 import { UserRole } from '@/lib/types';
 import type { AdminUser } from '@/lib/supabase/data';

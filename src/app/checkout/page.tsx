@@ -16,6 +16,7 @@ import {
   Info,
 } from 'lucide-react';
 import { useCart } from '@/components/cart/CartProvider';
+import { unitPrice } from '@/lib/pricing';
 import { Price } from '@/components/currency/Price';
 import { useCurrency } from '@/components/currency/CurrencyProvider';
 import { useTranslation } from '@/components/i18n/I18nProvider';
@@ -32,7 +33,7 @@ function CheckoutContent() {
   const couponFromQuery = (searchParams.get('coupon') ?? '').toUpperCase();
 
   const { cart, isLoaded, userId, cartError, clearCart } = useCart();
-  const { currency, exchangeRate, formatPrice } = useCurrency();
+  const { currency, exchangeRate, formatPrice, rateSource } = useCurrency();
   const { t } = useTranslation();
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -40,6 +41,10 @@ function CheckoutContent() {
   const [contextError, setContextError] = useState('');
   const [rules, setRules] = useState({ free_shipping_threshold: 0, flat_shipping_fee: 0 });
   const [couponDiscount, setCouponDiscount] = useState(0);
+  // A coupon that the server rejected and a coupon that could not be checked at
+  // all are different facts, and only the second one may not be ordered around.
+  const [couponProblem, setCouponProblem] = useState<{ hard: boolean; message: string } | null>(null);
+  const [couponRetry, setCouponRetry] = useState(0);
 
   // Generated once per checkout attempt and reused for every submit, so a
   // double click replays the original orders instead of creating new ones.
@@ -59,10 +64,9 @@ function CheckoutContent() {
     state: '',
     country: '',
     postalCode: '',
-    paymentMethod: 'credit_card', // credit_card | cod | bank_transfer
-    cardNumber: '',
-    cardExp: '',
-    cardCvc: '',
+    // COD is the honest default: the card path simulates payment, so it must be
+    // an explicit choice rather than a pre-selected one.
+    paymentMethod: 'cod', // credit_card (sandbox) | cod | bank_transfer
   });
 
   // A checkout needs a server-side cart, which only exists for a signed-in user.
@@ -121,24 +125,42 @@ function CheckoutContent() {
   useEffect(() => {
     if (!userId || !couponFromQuery) {
       setCouponDiscount(0);
+      setCouponProblem(null);
       return;
     }
     let cancelled = false;
 
     fetch(`/api/checkout/coupon?code=${encodeURIComponent(couponFromQuery)}&subtotal=${subtotal}`)
       .then(async (res) => {
-        const payload = await res.json();
-        if (!res.ok) throw new Error(payload.error ?? 'Coupon could not be validated');
-        if (!cancelled) setCouponDiscount(Number(payload.discount) || 0);
+        const payload = await res.json().catch(() => null);
+        if (cancelled) return;
+        if (!res.ok) {
+          const reason = String(payload?.error ?? 'the coupon could not be read');
+          setCouponDiscount(0);
+          setCouponProblem(
+            res.status >= 500
+              ? { hard: true, message: `The coupon service could not confirm “${couponFromQuery}” (${reason}). The total below may be wrong, so ordering is blocked until it answers.` }
+              : { hard: false, message: `“${couponFromQuery}”: ${reason}` },
+          );
+          return;
+        }
+        const discount = Number(payload?.discount) || 0;
+        setCouponDiscount(discount);
+        setCouponProblem(discount === 0 ? { hard: false, message: `“${couponFromQuery}” gives no discount on this subtotal.` } : null);
       })
-      .catch(() => {
-        if (!cancelled) setCouponDiscount(0);
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        setCouponDiscount(0);
+        setCouponProblem({
+          hard: true,
+          message: `The coupon service could not confirm “${couponFromQuery}” (${error instanceof Error ? error.message : 'network error'}). The total below may be wrong, so ordering is blocked until it answers.`,
+        });
       });
 
     return () => {
       cancelled = true;
     };
-  }, [couponFromQuery, subtotal, userId]);
+  }, [couponFromQuery, subtotal, userId, couponRetry]);
 
   // Same expression the database uses in place_order().
   const shippingFee = subtotal >= rules.free_shipping_threshold ? 0 : rules.flat_shipping_fee;
@@ -166,6 +188,10 @@ function CheckoutContent() {
 
   const handlePlaceOrder = async () => {
     if (isSubmitting || placedRef.current) return; // block double submission
+    if (couponProblem?.hard) {
+      setErrorMessage(couponProblem.message);
+      return;
+    }
     if (cart.items.length === 0) {
       router.replace('/cart');
       return;
@@ -499,7 +525,7 @@ function CheckoutContent() {
                         : 'border-gray-200 hover:border-gray-300'
                     }`}
                   >
-                    <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3">
                         <input
                           type="radio"
@@ -510,52 +536,18 @@ function CheckoutContent() {
                           className="text-brand focus:ring-brand w-4 h-4"
                         />
                         <span className="font-bold text-sm text-gray-900">
-                          Credit / Debit Card (Sandbox Mode)
+                          Credit / Debit Card
                         </span>
                       </div>
-                      <span className="text-[11px] font-bold text-brand bg-teal-100 px-2 py-0.5 rounded">
-                        Instant Simulation
+                      <span className="text-[11px] font-bold text-brand bg-teal-100 px-2 py-0.5 rounded shrink-0">
+                        Sandbox
                       </span>
                     </div>
-
-                    {formData.paymentMethod === 'credit_card' && (
-                      <div className="pt-3 border-t border-gray-200 space-y-3">
-                        <div>
-                          <label className="block text-[11px] font-bold text-gray-600 mb-1">
-                            Card Number (Demo Sandbox)
-                          </label>
-                          <input
-                            type="text"
-                            name="cardNumber"
-                            value={formData.cardNumber}
-                            onChange={handleInputChange}
-                            className="w-full px-3 py-2 border border-gray-300 rounded text-xs font-mono bg-white"
-                          />
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <label className="block text-[11px] font-bold text-gray-600 mb-1">Expiration</label>
-                            <input
-                              type="text"
-                              name="cardExp"
-                              value={formData.cardExp}
-                              onChange={handleInputChange}
-                              className="w-full px-3 py-2 border border-gray-300 rounded text-xs font-mono bg-white"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-[11px] font-bold text-gray-600 mb-1">CVC Code</label>
-                            <input
-                              type="text"
-                              name="cardCvc"
-                              value={formData.cardCvc}
-                              onChange={handleInputChange}
-                              className="w-full px-3 py-2 border border-gray-300 rounded text-xs font-mono bg-white"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    )}
+                    <p className="text-xs text-gray-500 pl-7 pt-1 leading-relaxed">
+                      No card processor is connected to this store yet. Choosing this option records a
+                      simulated, clearly-flagged sandbox payment in the database: no card details are asked
+                      for and no money moves.
+                    </p>
                   </label>
 
                   {/* Option 2: Cash On Delivery */}
@@ -663,9 +655,6 @@ function CheckoutContent() {
                         ? 'Sandbox Credit Card (Simulated)'
                         : formData.paymentMethod.replace('_', ' ')}
                     </p>
-                    <p className="text-emerald-700 font-semibold mt-1 flex items-center gap-1">
-                      <Lock className="w-3.5 h-3.5" /> 256-bit Encrypted SSL
-                    </p>
                   </div>
                 </div>
 
@@ -677,7 +666,7 @@ function CheckoutContent() {
                       <div key={i.id} className="p-3 flex items-center justify-between gap-4">
                         <div className="flex items-center gap-3">
                           <img
-                            src={i.product.images?.[0]?.image_url || 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=100&q=80'}
+                            src={i.product.images?.[0]?.image_url || '/placeholder-product.svg'}
                             alt={i.product.title}
                             className="w-12 h-14 object-cover rounded border border-gray-200 shrink-0"
                           />
@@ -687,7 +676,7 @@ function CheckoutContent() {
                           </div>
                         </div>
                         <Price
-                          amount={(i.variant ? i.variant.price : i.product.discounted_price) * i.quantity}
+                          amount={unitPrice(i) * i.quantity}
                           className="text-xs font-bold text-brand shrink-0"
                         />
                       </div>
@@ -745,6 +734,30 @@ function CheckoutContent() {
                 </div>
               )}
 
+              {couponProblem && (
+                <div
+                  role={couponProblem.hard ? 'alert' : 'status'}
+                  aria-live="polite"
+                  className={`p-2.5 rounded-md border text-[11px] leading-snug flex items-start gap-1.5 ${
+                    couponProblem.hard
+                      ? 'bg-rose-50 border-rose-200 text-rose-800'
+                      : 'bg-gray-50 border-gray-200 text-gray-700'
+                  }`}
+                >
+                  <Info className={`w-4 h-4 shrink-0 mt-0.5 ${couponProblem.hard ? 'text-rose-600' : 'text-gray-500'}`} />
+                  <span className="flex-1">{couponProblem.message}</span>
+                  {couponProblem.hard && (
+                    <button
+                      type="button"
+                      onClick={() => setCouponRetry((n) => n + 1)}
+                      className="shrink-0 font-bold underline hover:text-rose-900"
+                    >
+                      Try again
+                    </button>
+                  )}
+                </div>
+              )}
+
               <div className="flex items-center justify-between text-gray-600">
                 <span>{t('cart.shipping')}</span>
                 <span>{shippingFee === 0 ? <strong className="text-emerald-600">{t('common.free')}</strong> : <Price amount={shippingFee} />}</span>
@@ -760,8 +773,14 @@ function CheckoutContent() {
                 <div className="mt-3 p-2.5 bg-amber-50 border border-amber-200 rounded-md text-[11px] text-amber-800 flex items-start gap-1.5 leading-snug">
                   <Info className="w-4 h-4 shrink-0 text-amber-600 mt-0.5" />
                   <span>
-                    Amounts are converted from USD for display; you are charged{' '}
-                    <strong>${total.toFixed(2)} USD</strong>.
+                    Amounts are converted from USD for display; the order total is{' '}
+                    <strong>{formatPrice(total, 'USD')}</strong>.
+                    {rateSource === 'approximate' && (
+                      <>
+                        {' '}The {currency} rate could not be fetched, so the converted figure is an
+                        approximation from the bundled table, not today&apos;s market rate.
+                      </>
+                    )}
                   </span>
                 </div>
               )}
@@ -770,12 +789,18 @@ function CheckoutContent() {
             <div className="pt-4 border-t border-gray-100 space-y-2 text-[11px] text-gray-500">
               <div className="flex items-center gap-2">
                 <Check className="w-4 h-4 text-emerald-600" />
-                <span>30-Day Money Back Guarantee</span>
+                <span>
+                  {shippingFee === 0
+                    ? `Free shipping applied (orders over ${formatPrice(rules.free_shipping_threshold)})`
+                    : `Free shipping on orders over ${formatPrice(rules.free_shipping_threshold)}`}
+                </span>
               </div>
-              <div className="flex items-center gap-2">
-                <Check className="w-4 h-4 text-emerald-600" />
-                <span>Instant Sandbox Payment Confirmation</span>
-              </div>
+              {formData.paymentMethod === 'credit_card' && (
+                <div className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-emerald-600" />
+                  <span>Card payment is simulated: the order is recorded, no money moves</span>
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -11,14 +11,20 @@ import {
   ShoppingBag,
   Users,
   ChevronRight,
+  Images,
+  Newspaper,
+  Settings,
 } from 'lucide-react';
 
 const navigation = [
   { name: 'Platform Overview', href: '/admin/dashboard', icon: LayoutDashboard },
   { name: 'Products Moderation', href: '/admin/products', icon: Package },
   { name: 'Categories Management', href: '/admin/categories', icon: Layers },
+  { name: 'Homepage Banners', href: '/admin/banners', icon: Images },
   { name: 'Platform Orders', href: '/admin/orders', icon: ShoppingBag },
+  { name: 'Blog', href: '/admin/blog', icon: Newspaper },
   { name: 'Users & Roles', href: '/admin/users', icon: Users },
+  { name: 'Site Settings', href: '/admin/settings', icon: Settings },
 ];
 
 export function AdminShell({ adminName, children }: { adminName: string; children: React.ReactNode }) {

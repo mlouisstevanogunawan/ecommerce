@@ -1,11 +1,11 @@
 'use client';
 
-import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Check, X, ShoppingCart, ArrowRight } from 'lucide-react';
 import { useCart } from './CartProvider';
 import { formatCurrency } from '@/lib/utils';
+import { effectivePrice } from '@/lib/pricing';
 import { Price } from '@/components/currency/Price';
 import { useTranslation } from '@/components/i18n/I18nProvider';
 
@@ -15,7 +15,7 @@ export function AddedToCartModal() {
   if (!isCartModalOpen || !lastAddedProduct) return null;
 
   const { product, quantity } = lastAddedProduct;
-  const primaryImg = product.images?.[0]?.image_url || 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=400&q=80';
+  const primaryImg = product.images?.[0]?.image_url || '/placeholder-product.svg';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
@@ -57,7 +57,7 @@ export function AddedToCartModal() {
               <p className="text-sm text-gray-500 mt-1">Quantity: <span className="font-medium text-gray-800">{quantity}</span></p>
               <div className="mt-2 flex items-center gap-2">
                 <Price
-                  amount={product.discounted_price}
+                  amount={effectivePrice(null, product)}
                   className="text-brand font-bold text-lg"
                 />
                 {product.discount_rate > 0 && (

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Sparkles } from 'lucide-react';
 import { Product } from '@/lib/types';
@@ -14,14 +14,21 @@ interface FeaturedProductsProps {
 export function FeaturedProducts({ products }: FeaturedProductsProps) {
   const { t } = useTranslation();
   const [visibleCount, setVisibleCount] = useState(8);
-  const [activeTab, setActiveTab] = useState<'all' | 'clothing' | 'shoes' | 'jewelry'>('all');
+  const [activeSlug, setActiveSlug] = useState<string | null>(null);
 
-  const filteredProducts = products.filter((p) => {
-    if (activeTab === 'clothing') return p.category?.slug.includes('clothing');
-    if (activeTab === 'shoes') return p.category?.slug.includes('shoes');
-    if (activeTab === 'jewelry') return p.category?.slug.includes('jewelry');
-    return true;
-  });
+  // Tabs come from the categories actually present in this list, so a tab can
+  // never advertise a section the database does not have.
+  const tabs = useMemo(() => {
+    const seen = new Map<string, string>();
+    for (const p of products) {
+      if (p.category?.slug && !seen.has(p.category.slug)) seen.set(p.category.slug, p.category.name);
+    }
+    return [...seen].map(([slug, name]) => ({ slug, name }));
+  }, [products]);
+
+  const filteredProducts = activeSlug
+    ? products.filter((p) => p.category?.slug === activeSlug)
+    : products;
 
   const displayed = filteredProducts.slice(0, visibleCount);
 
@@ -38,65 +45,54 @@ export function FeaturedProducts({ products }: FeaturedProductsProps) {
               <h3 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">
                 {t('home.featuredProducts')}
               </h3>
-              <p className="text-xs text-gray-500">Hand-picked top verified quality products</p>
+              <p className="text-xs text-gray-500">{t('home.featuredSubtitle')}</p>
             </div>
           </div>
 
           {/* Category Tabs */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0" role="group" aria-label={t('home.featuredProducts')}>
             <button
               type="button"
-              onClick={() => { setActiveTab('all'); setVisibleCount(8); }}
+              aria-pressed={activeSlug === null}
+              onClick={() => { setActiveSlug(null); setVisibleCount(8); }}
               className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors ${
-                activeTab === 'all'
+                activeSlug === null
                   ? 'bg-brand text-white shadow-xs'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
               {t('common.all')}
             </button>
-            <button
-              type="button"
-              onClick={() => { setActiveTab('clothing'); setVisibleCount(8); }}
-              className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors ${
-                activeTab === 'clothing'
-                  ? 'bg-brand text-white shadow-xs'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              {t('categories.clothing')}
-            </button>
-            <button
-              type="button"
-              onClick={() => { setActiveTab('shoes'); setVisibleCount(8); }}
-              className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors ${
-                activeTab === 'shoes'
-                  ? 'bg-brand text-white shadow-xs'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              {t('categories.shoes')}
-            </button>
-            <button
-              type="button"
-              onClick={() => { setActiveTab('jewelry'); setVisibleCount(8); }}
-              className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors ${
-                activeTab === 'jewelry'
-                  ? 'bg-brand text-white shadow-xs'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              {t('categories.accessories')}
-            </button>
+            {tabs.map((tab) => (
+              <button
+                key={tab.slug}
+                type="button"
+                aria-pressed={activeSlug === tab.slug}
+                onClick={() => { setActiveSlug(tab.slug); setVisibleCount(8); }}
+                className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors ${
+                  activeSlug === tab.slug
+                    ? 'bg-brand text-white shadow-xs'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                {tab.name}
+              </button>
+            ))}
           </div>
         </div>
 
         {/* Product Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-4 sm:gap-6">
-          {displayed.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
+        {displayed.length === 0 ? (
+          <p className="py-10 text-center text-sm text-gray-500">
+            No featured listing in this category yet.
+          </p>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-4 sm:gap-6">
+            {displayed.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        )}
 
         {/* Load More Button */}
         {visibleCount < filteredProducts.length && (

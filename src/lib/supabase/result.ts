@@ -12,22 +12,25 @@ export function unwrap<T>(result: Result<T>, operation: string): T {
   return result.data;
 }
 
-export function orThrow<T>(data: T, operation: string): NonNullable<T> {
-  if (data === null || data === undefined) {
-    throw new HttpError(404, `${operation} was not found`);
-  }
-  return data;
-}
-
 // PostgREST renders numeric/decimal columns either as JSON numbers or as strings
 // depending on the server version, and the domain model uses numbers.
+// A missing amount is zero (discounted_price is nullable), but a value that is
+// present and unreadable is corrupt data: charging it as 0 would sell an item for
+// nothing, so it fails the request instead.
 export function money(value: unknown): number {
-  if (typeof value === 'number') return value;
-  if (typeof value === 'string') {
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : 0;
+  if (value === null || value === undefined) return 0;
+  if (typeof value === 'number') {
+    if (!Number.isFinite(value)) throw new HttpError(502, `Unusable amount in the database: ${value}`);
+    return value;
   }
-  return 0;
+  if (typeof value === 'string') {
+    const parsed = Number(value.trim());
+    if (value.trim() === '' || !Number.isFinite(parsed)) {
+      throw new HttpError(502, `Unusable amount in the database: "${value}"`);
+    }
+    return parsed;
+  }
+  throw new HttpError(502, `Unusable amount in the database: ${JSON.stringify(value)}`);
 }
 
 export function moneyIn(row: Record<string, unknown>, columns: readonly string[]): Record<string, unknown> {

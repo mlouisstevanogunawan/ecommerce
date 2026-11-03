@@ -1,8 +1,7 @@
-import React from 'react';
 import Link from 'next/link';
-import { ChevronRight, Calendar, User, ArrowRight, BookOpen } from 'lucide-react';
+import { ChevronRight, Calendar, ArrowRight } from 'lucide-react';
 import { getBlogPosts } from '@/lib/supabase/data';
-import { formatDate } from '@/lib/utils';
+import { formatDate, readingMinutes } from '@/lib/utils';
 
 export const revalidate = 60;
 
@@ -25,10 +24,10 @@ export default async function BlogIndexPage() {
             Marketplace Magazine
           </span>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 mb-2">
-            Modesy Insights & Stories
+            Insights &amp; Stories
           </h1>
           <p className="text-xs sm:text-sm text-gray-500">
-            Style advice, designer interviews, artisan tips, and ecommerce trends from our community.
+            Seller spotlights, buying guides and product stories from the marketplace.
           </p>
         </div>
 
@@ -41,12 +40,12 @@ export default async function BlogIndexPage() {
             >
               <Link href={`/blog/${post.slug}`} className="relative h-52 overflow-hidden block">
                 <img
-                  src={post.image_url || 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=800&q=80'}
+                  src={post.image_url || '/placeholder-product.svg'}
                   alt={post.title}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 />
                 <div className="absolute top-3 left-3 bg-brand text-white text-[11px] font-bold px-2.5 py-1 rounded shadow-xs">
-                  {post.category?.name || 'Trends'}
+                  {post.category?.name}
                 </div>
               </Link>
 
@@ -56,10 +55,6 @@ export default async function BlogIndexPage() {
                     <span className="flex items-center gap-1">
                       <Calendar className="w-3.5 h-3.5" />
                       {formatDate(post.created_at)}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <User className="w-3.5 h-3.5" />
-                      Modesy Editorial
                     </span>
                   </div>
 
@@ -79,12 +74,18 @@ export default async function BlogIndexPage() {
                   >
                     Read Article <ArrowRight className="w-3.5 h-3.5" />
                   </Link>
-                  <span className="text-xs text-gray-400">5 min read</span>
+                  <span className="text-xs text-gray-400">{readingMinutes(post.content)} min read</span>
                 </div>
               </div>
             </article>
           ))}
         </div>
+        {posts.length === 0 && (
+          <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
+            <h2 className="font-bold text-gray-800 text-base mb-1">No articles published yet</h2>
+            <p className="text-xs text-gray-500">New posts appear here once they are published in the admin panel.</p>
+          </div>
+        )}
       </div>
     </div>
   );

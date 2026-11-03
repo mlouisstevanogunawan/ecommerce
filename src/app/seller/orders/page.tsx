@@ -1,4 +1,3 @@
-import React from 'react';
 import { ShoppingBag } from 'lucide-react';
 import { getSellerOrders } from '@/lib/supabase/data';
 import { SellerOrdersTable } from './SellerOrdersTable';

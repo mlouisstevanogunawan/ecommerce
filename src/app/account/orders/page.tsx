@@ -1,8 +1,7 @@
-import React from 'react';
 import Link from 'next/link';
-import { Package, ChevronRight, Eye, FileText, ArrowRight } from 'lucide-react';
+import { Package, ChevronRight, Eye } from 'lucide-react';
 import { getOrders } from '@/lib/supabase/data';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { formatDate } from '@/lib/utils';
 import { Price } from '@/components/currency/Price';
 
 export const revalidate = 0; // dynamic

@@ -44,41 +44,27 @@
     "settings": "Settings"
   },
   "categories": {
-    "clothing": "Clothing",
-    "shoes": "Shoes",
-    "accessories": "Accessories",
-    "homeLiving": "Home & Living",
-    "electronics": "Electronics",
-    "beauty": "Beauty",
-    "toys": "Toys",
-    "books": "Books",
-    "sports": "Sports",
     "popularProducts": "Popular Products",
     "specialDeals": "Special Deals"
   },
   "home": {
-    "hero1Title": "Summer Essentials Collection",
-    "hero1Subtitle": "Explore handpicked boutique styles crafted by top independent creators.",
-    "hero2Title": "Handcrafted Home & Lifestyle",
-    "hero2Subtitle": "Elevate your living space with sustainable and artisanal designs.",
-    "hero3Title": "Next-Gen Tech & Audio",
-    "hero3Subtitle": "Premium electronics, smart gadgets, and high-fidelity sound gear.",
     "shopNow": "Shop Now",
     "shopByCategory": "Shop by Category",
     "featuredProducts": "Featured Products",
+    "featuredSubtitle": "Listings the stores themselves marked as featured",
     "trendingCategories": "Trending Categories",
     "specialOffers": "Special Offers",
     "latestFromBlog": "Latest From Blog",
     "readMore": "Read More",
     "trustBadges": {
       "freeShippingTitle": "Free Delivery",
-      "freeShippingDesc": "On all orders over $150",
-      "securePaymentTitle": "Secure Payment",
-      "securePaymentDesc": "100% encrypted & protected",
-      "supportTitle": "24/7 Dedicated Support",
-      "supportDesc": "Always here to help you",
-      "moneyBackTitle": "Money Back Guarantee",
-      "moneyBackDesc": "30-day hassle-free return"
+      "freeShippingDesc": "On orders over {amount}",
+      "supportTitle": "Support Desk",
+      "supportDesc": "Send a message from the contact page",
+      "sellerContactTitle": "Direct Seller Contact",
+      "sellerContactDesc": "Ask the vendor before you order",
+      "currencyTitle": "Currency Transparency",
+      "currencyDesc": "Shown in your currency, charged in USD"
     }
   },
   "products": {
@@ -126,7 +112,7 @@
     "discount": "Discount",
     "shipping": "Shipping Fee",
     "orderTotal": "Estimated Total",
-    "couponPlaceholder": "Enter coupon code (e.g. MODESY10)",
+    "couponPlaceholder": "Enter coupon code",
     "applyCoupon": "Apply",
     "proceedCheckout": "Proceed to Checkout",
     "freeShippingQualified": "You have qualified for Free Shipping!",

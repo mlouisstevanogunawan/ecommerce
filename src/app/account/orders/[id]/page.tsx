@@ -1,9 +1,8 @@
-import React from 'react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ChevronRight, Package, Truck, ArrowLeft, Printer } from 'lucide-react';
+import { ChevronRight, Package, Truck, ArrowLeft } from 'lucide-react';
 import { getOrderById } from '@/lib/supabase/data';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { formatDate } from '@/lib/utils';
 import { Price } from '@/components/currency/Price';
 
 interface OrderDetailPageProps {

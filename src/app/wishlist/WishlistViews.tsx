@@ -1,6 +1,5 @@
 'use client';
 
-import React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AlertCircle, Heart, ShoppingCart, Trash2 } from 'lucide-react';
@@ -9,7 +8,7 @@ import { Product } from '@/lib/types';
 import { Price } from '@/components/currency/Price';
 
 export function WishlistGrid({ products }: { products: Product[] }) {
-  const { toggleWishlist, addToCart, cartError } = useCart();
+  const { toggleWishlist, addToCart, wishlistError } = useCart();
   const router = useRouter();
 
   const handleToggle = (productId: string) => {
@@ -20,10 +19,10 @@ export function WishlistGrid({ products }: { products: Product[] }) {
 
   return (
     <>
-      {cartError && (
+      {wishlistError && (
         <div className="m-6 p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded text-xs font-semibold flex items-center gap-2">
           <AlertCircle className="w-4 h-4 shrink-0" />
-          <span>{cartError}</span>
+          <span>{wishlistError}</span>
         </div>
       )}
 

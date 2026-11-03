@@ -14,6 +14,62 @@ export type Database = {
   }
   public: {
     Tables: {
+      banners: {
+        Row: {
+          background_color: string | null
+          button_text: string | null
+          category_id: string | null
+          created_at: string
+          id: string
+          image_url: string | null
+          is_active: boolean
+          link_url: string
+          placement: string
+          sort_order: number
+          subtitle: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          background_color?: string | null
+          button_text?: string | null
+          category_id?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          link_url: string
+          placement: string
+          sort_order?: number
+          subtitle?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          background_color?: string | null
+          button_text?: string | null
+          category_id?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          link_url?: string
+          placement?: string
+          sort_order?: number
+          subtitle?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "banners_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       blog_categories: {
         Row: {
           id: string
@@ -276,6 +332,24 @@ export type Database = {
           id?: string
           is_active?: boolean
           min_order_amount?: number | null
+        }
+        Relationships: []
+      }
+      newsletter_subscribers: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
         }
         Relationships: []
       }
@@ -745,10 +819,14 @@ export type Database = {
           contact_phone: string | null
           currency_code: string | null
           currency_symbol: string | null
+          facebook_url: string | null
           id: string
+          instagram_url: string | null
           site_description: string | null
           site_title: string
+          twitter_url: string | null
           updated_at: string
+          youtube_url: string | null
         }
         Insert: {
           address?: string | null
@@ -756,10 +834,14 @@ export type Database = {
           contact_phone?: string | null
           currency_code?: string | null
           currency_symbol?: string | null
+          facebook_url?: string | null
           id?: string
+          instagram_url?: string | null
           site_description?: string | null
           site_title?: string
+          twitter_url?: string | null
           updated_at?: string
+          youtube_url?: string | null
         }
         Update: {
           address?: string | null
@@ -767,12 +849,52 @@ export type Database = {
           contact_phone?: string | null
           currency_code?: string | null
           currency_symbol?: string | null
+          facebook_url?: string | null
           id?: string
+          instagram_url?: string | null
           site_description?: string | null
           site_title?: string
+          twitter_url?: string | null
           updated_at?: string
+          youtube_url?: string | null
         }
         Relationships: []
+      }
+      store_follows: {
+        Row: {
+          created_at: string
+          id: string
+          store_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          store_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          store_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_follows_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_follows_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       stores: {
         Row: {
@@ -1002,11 +1124,19 @@ export type Database = {
         Args: { p_code: string; p_subtotal: number }
         Returns: number
       }
+      is_following_store: {
+        Args: { p_store_id: string }
+        Returns: boolean
+      }
       generate_order_number: { Args: never; Returns: string }
       is_admin: { Args: never; Returns: boolean }
       is_seller: { Args: never; Returns: boolean }
       my_cart_id: { Args: never; Returns: string }
       my_store_ids: { Args: never; Returns: string[] }
+      product_brands: {
+        Args: Record<PropertyKey, never>
+        Returns: { brand: string }[]
+      }
       place_order: {
         Args: {
           p_coupon_code?: string
@@ -1058,6 +1188,10 @@ export type Database = {
         Returns: undefined
       }
       refresh_store_stats: { Args: { p_store_id: string }; Returns: undefined }
+      store_follower_count: {
+        Args: { p_store_id: string }
+        Returns: number
+      }
       submit_review: {
         Args: { p_product_id: string; p_rating: number; p_review_text: string }
         Returns: string

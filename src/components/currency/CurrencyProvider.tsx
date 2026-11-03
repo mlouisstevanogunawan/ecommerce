@@ -17,6 +17,9 @@ interface CurrencyContextValue {
   rates: Record<string, number>;
   exchangeRate: number;
   isFallback: boolean;
+  // 'approximate' means the number on screen is not today's market rate: either the
+  // rate API never answered or it answered without this currency.
+  rateSource: 'live' | 'approximate';
   setCurrency: (code: string) => void;
   formatPrice: (amountInUSD: number, customCurrency?: string) => string;
 }
@@ -28,11 +31,13 @@ export function CurrencyProvider({
   initialCurrency = DEFAULT_CURRENCY,
   initialRates = { USD: 1 },
   isFallback = false,
+  missingRates = [],
 }: {
   children: React.ReactNode;
   initialCurrency?: string;
   initialRates?: Record<string, number>;
   isFallback?: boolean;
+  missingRates?: string[];
 }) {
   const router = useRouter();
   const [currency, setCurrencyState] = useState<string>(
@@ -42,6 +47,8 @@ export function CurrencyProvider({
 
   const config = useMemo(() => getCurrencyConfig(currency), [currency]);
   const exchangeRate = useMemo(() => rates[currency] || 1, [rates, currency]);
+  const rateSource: 'live' | 'approximate' =
+    currency === DEFAULT_CURRENCY || !missingRates.includes(currency) ? 'live' : 'approximate';
 
   const setCurrency = useCallback(
     (newCurrency: string) => {
@@ -86,10 +93,11 @@ export function CurrencyProvider({
       rates,
       exchangeRate,
       isFallback,
+      rateSource,
       setCurrency,
       formatPrice,
     }),
-    [currency, config, rates, exchangeRate, isFallback, setCurrency, formatPrice]
+    [currency, config, rates, exchangeRate, isFallback, rateSource, setCurrency, formatPrice]
   );
 
   return (

@@ -1,6 +1,5 @@
 'use client';
 
-import React from 'react';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import { Category } from '@/lib/types';
@@ -38,11 +37,15 @@ export function CategoryCircles({ categories }: CategoryCirclesProps) {
             <div key={cat.id} className="item-category-round group">
               <Link href={`/categories/${cat.slug}`} className="block">
                 <div className="image-wrapper">
-                  <img
-                    src={cat.image_url || 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=300&q=80'}
-                    alt={cat.name}
-                    loading="lazy"
-                  />
+                  {cat.image_url ? (
+                    <img src={cat.image_url} alt={cat.name} loading="lazy" />
+                  ) : (
+                    // No stock photo: the circle shows the category's own name,
+                    // which is the only real data available for it.
+                    <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-500 font-bold text-lg uppercase">
+                      {cat.name.slice(0, 2)}
+                    </div>
+                  )}
                   <div className="overlay-text">
                     <span className="flex items-center gap-1">
                       {t('home.shopNow')} <ArrowRight className="w-3.5 h-3.5" />

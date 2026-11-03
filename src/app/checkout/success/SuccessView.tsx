@@ -1,6 +1,5 @@
 'use client';
 
-import React from 'react';
 import Link from 'next/link';
 import { CheckCircle2, FileText, ShoppingBag } from 'lucide-react';
 import { useTranslation } from '@/components/i18n/I18nProvider';

@@ -1,6 +1,5 @@
-import React from 'react';
 import Link from 'next/link';
-import { Store as StoreIcon, ChevronRight, UserCheck, Search, Star, Package, Check } from 'lucide-react';
+import { Store as StoreIcon, ChevronRight, UserCheck, Search, Star } from 'lucide-react';
 import { getShops } from '@/lib/supabase/data';
 
 interface ShopsPageProps {
@@ -57,7 +56,7 @@ export default async function ShopsPage({ searchParams }: ShopsPageProps) {
               {/* Cover Banner */}
               <div className="relative h-28 bg-gray-900 overflow-hidden">
                 <img
-                  src={store.cover_url || 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=800&q=80'}
+                  src={store.cover_url || '/placeholder-product.svg'}
                   alt={store.title}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-80"
                 />
@@ -69,7 +68,7 @@ export default async function ShopsPage({ searchParams }: ShopsPageProps) {
                   {/* Floating Avatar */}
                   <div className="relative -mt-10 mb-3 w-16 h-16 rounded-full border-4 border-white overflow-hidden shadow-xs bg-white">
                     <img
-                      src={store.logo_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&q=80'}
+                      src={store.logo_url || '/placeholder-product.svg'}
                       alt={store.title}
                       className="w-full h-full object-cover"
                     />

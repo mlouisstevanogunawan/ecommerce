@@ -38,7 +38,3 @@ export async function requireRole(roles: UserRole[]): Promise<Profile> {
   }
   return profile;
 }
-
-export async function getSupabase() {
-  return createClient();
-}

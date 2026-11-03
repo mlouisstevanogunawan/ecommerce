@@ -1,29 +1,29 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
-import { HelpCircle, ChevronRight, ChevronDown, Search, ArrowRight, ShieldCheck, Truck, RefreshCw } from 'lucide-react';
+import { HelpCircle, ChevronRight, ChevronDown, Search, ArrowRight } from 'lucide-react';
 
 const FAQS = [
   {
     q: 'How does the multi-vendor marketplace work?',
-    a: 'Modesy connects independent vendors and brands directly with shoppers. When you purchase an item, the individual vendor prepares, packages, and ships the goods directly to your address.',
+    a: 'The marketplace lists products from independent stores. When you order, each store prepares, packages and ships its own items, and your cart is split into one order per store at checkout.',
   },
   {
     q: 'What payment methods are supported?',
-    a: 'We accept credit cards, debit cards, cash on delivery (COD for eligible domestic destinations), and direct bank wire transfers. All card transactions are encrypted with 256-bit SSL.',
+    a: 'Cash on delivery and direct bank transfer are recorded as unpaid orders that the store settles with you. A card option also exists, but no payment processor is connected yet: choosing it records a clearly flagged sandbox payment, no card details are collected, and no money is charged.',
   },
   {
     q: 'How can I track my shipment?',
-    a: 'Once your order is processed, visit "My Orders" in your account dashboard. You will see tracking numbers and real-time status updates (Processing, Shipped, Completed).',
+    a: 'Open "My Orders" in your account. Each order shows the status the seller last set (pending, processing, shipped, completed or cancelled) plus the store it came from. Courier tracking numbers are not stored by this marketplace yet, so arrange handover with the seller through the contact details on their store page.',
   },
   {
-    q: 'What is your return & refund policy?',
-    a: 'We offer a 30-day money-back guarantee. If the product received is damaged, counterfeit, or differs substantially from the description, you can initiate a dispute or return for a full refund.',
+    q: 'What happens if an item is wrong or damaged?',
+    a: 'There is no automated returns or refunds form yet. Contact the seller from their store page, or send the support desk a message through the contact page, and the claim is handled manually with that store.',
   },
   {
-    q: 'How do I open my own store on Modesy?',
-    a: 'Simply click "Sell on Modesy" in the top navigation, register your seller details, configure your store name and payout method, and start listing products immediately.',
+    q: 'How do I open my own store?',
+    a: 'Tick "register as a vendor" on the sign-up form, then open the seller dashboard. Set your store name, description, phone and address under Store Settings and start listing products. Seller payouts are handled offline; the dashboard tracks orders, stock and revenue instead.',
   },
 ];
 
@@ -62,7 +62,12 @@ export default function HelpCenterPage() {
               type="text"
               placeholder="Search help topics..."
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                // openIndex points into the filtered list, so a new search would
+                // otherwise leave a different question expanded.
+                setOpenIndex(0);
+              }}
               className="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-lg text-xs focus:outline-none focus:border-brand shadow-xs"
             />
             <Search className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
@@ -98,6 +103,28 @@ export default function HelpCenterPage() {
                 </div>
               );
             })}
+
+            {filteredFaqs.length === 0 && (
+              <div className="py-6 text-center">
+                <p className="text-sm font-bold text-gray-900">
+                  No answer matches “{search.trim()}”.
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  These {FAQS.length} questions are all the help center has, so try a word like{' '}
+                  <em>payment</em>, <em>shipping</em> or <em>store</em>.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearch('');
+                    setOpenIndex(0);
+                  }}
+                  className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-brand hover:underline"
+                >
+                  Clear the search
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="pt-6 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">

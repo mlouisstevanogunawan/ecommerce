@@ -1,9 +1,8 @@
-import React from 'react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ChevronRight, Calendar, User, ArrowLeft, Share2, Tag } from 'lucide-react';
+import { ChevronRight, Calendar, ArrowLeft } from 'lucide-react';
 import { getBlogPostBySlug, getBlogPosts } from '@/lib/supabase/data';
-import { formatDate } from '@/lib/utils';
+import { formatDate, readingMinutes } from '@/lib/utils';
 
 interface BlogPostPageProps {
   params: Promise<{ slug: string }>;
@@ -50,16 +49,13 @@ export default async function BlogPostDetailPage({ params }: BlogPostPageProps) 
             {/* Meta */}
             <div className="flex flex-wrap items-center gap-4 text-xs text-gray-500 pb-4 border-b border-gray-100">
               <span className="bg-teal-50 text-brand font-bold px-2.5 py-1 rounded">
-                {post.category?.name || 'Trends'}
+                {post.category?.name}
               </span>
               <span className="flex items-center gap-1">
                 <Calendar className="w-3.5 h-3.5" />
                 {formatDate(post.created_at)}
               </span>
-              <span className="flex items-center gap-1">
-                <User className="w-3.5 h-3.5" />
-                Modesy Editorial
-              </span>
+              <span>{readingMinutes(post.content)} min read</span>
             </div>
 
             {/* Title */}

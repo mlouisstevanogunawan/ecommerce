@@ -1,22 +1,25 @@
 'use client';
 
-import React from 'react';
-import { Truck, RotateCcw, Headphones, ShieldCheck } from 'lucide-react';
+import { Truck, Headphones, MessageCircle, CircleDollarSign } from 'lucide-react';
 import { useTranslation } from '@/components/i18n/I18nProvider';
+import { useCurrency } from '@/components/currency/CurrencyProvider';
 
-export function TrustBadges() {
+interface TrustBadgesProps {
+  // Threshold in USD, straight from public.checkout_rules().
+  freeShippingThreshold: number;
+}
+
+export function TrustBadges({ freeShippingThreshold }: TrustBadgesProps) {
   const { t } = useTranslation();
+  const { formatPrice } = useCurrency();
 
   const badges = [
     {
       icon: Truck,
       title: t('home.trustBadges.freeShippingTitle'),
-      subtitle: t('home.trustBadges.freeShippingDesc'),
-    },
-    {
-      icon: RotateCcw,
-      title: t('home.trustBadges.moneyBackTitle'),
-      subtitle: t('home.trustBadges.moneyBackDesc'),
+      subtitle: t('home.trustBadges.freeShippingDesc', {
+        amount: formatPrice(freeShippingThreshold),
+      }),
     },
     {
       icon: Headphones,
@@ -24,9 +27,14 @@ export function TrustBadges() {
       subtitle: t('home.trustBadges.supportDesc'),
     },
     {
-      icon: ShieldCheck,
-      title: t('home.trustBadges.securePaymentTitle'),
-      subtitle: t('home.trustBadges.securePaymentDesc'),
+      icon: MessageCircle,
+      title: t('home.trustBadges.sellerContactTitle'),
+      subtitle: t('home.trustBadges.sellerContactDesc'),
+    },
+    {
+      icon: CircleDollarSign,
+      title: t('home.trustBadges.currencyTitle'),
+      subtitle: t('home.trustBadges.currencyDesc'),
     },
   ];
 

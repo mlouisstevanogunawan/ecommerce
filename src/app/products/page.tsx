@@ -1,7 +1,7 @@
-import React, { Suspense } from 'react';
+import { Suspense } from 'react';
 import Link from 'next/link';
 import { ChevronRight, PackageOpen } from 'lucide-react';
-import { getCategories, getProducts } from '@/lib/supabase/data';
+import { getCategories, getProductBrands, getProducts } from '@/lib/supabase/data';
 import { ProductCard } from '@/components/products/ProductCard';
 import { ProductFiltersSidebar } from '@/components/products/ProductFiltersSidebar';
 import { ProductSortToolbar } from '@/components/products/ProductSortToolbar';
@@ -13,7 +13,7 @@ interface ProductsPageProps {
     brand?: string;
     minPrice?: string;
     maxPrice?: string;
-    sort?: 'newest' | 'lowest_price' | 'highest_price' | 'highest_rating';
+    sort?: 'newest' | 'lowest_price' | 'highest_price' | 'highest_rating' | 'popular' | 'discount';
     page?: string;
   }>;
 }
@@ -22,7 +22,7 @@ export const revalidate = 30;
 
 export default async function ProductsPage({ searchParams }: ProductsPageProps) {
   const resolvedParams = await searchParams;
-  const categories = await getCategories();
+  const [categories, brands] = await Promise.all([getCategories(), getProductBrands()]);
 
   const products = await getProducts({
     search: resolvedParams.search,
@@ -56,6 +56,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
             <Suspense fallback={<div className="h-96 bg-white rounded-lg animate-pulse" />}>
               <ProductFiltersSidebar
                 categories={categories}
+                brands={brands}
                 currentCategorySlug={resolvedParams.category}
               />
             </Suspense>

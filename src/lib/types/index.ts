@@ -208,6 +208,27 @@ export interface BlogPost {
   };
 }
 
+export interface BlogCategory {
+  id: string;
+  name: string;
+  slug: string;
+  post_count: number;
+}
+
+export type ContactMessageStatus = 'unread' | 'read';
+
+export interface ContactMessage {
+  id: string;
+  name: string;
+  email: string;
+  subject: string | null;
+  message: string;
+  status: ContactMessageStatus;
+  product_id: string | null;
+  product?: { slug: string; title: string } | null;
+  created_at: string;
+}
+
 export interface SiteSettings {
   id: string;
   site_title: string;
@@ -217,4 +238,24 @@ export interface SiteSettings {
   address: string;
   currency_code: string;
   currency_symbol: string;
+  facebook_url?: string | null;
+  instagram_url?: string | null;
+  twitter_url?: string | null;
+  youtube_url?: string | null;
+}
+
+export type BannerPlacement = 'hero' | 'promo_two' | 'promo_three' | 'category_showcase';
+
+export interface Banner {
+  id: string;
+  placement: BannerPlacement;
+  category_id?: string | null;
+  title: string;
+  subtitle?: string | null;
+  button_text?: string | null;
+  link_url: string;
+  image_url?: string | null;
+  background_color?: string | null;
+  sort_order: number;
+  is_active: boolean;
 }

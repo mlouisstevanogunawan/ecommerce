@@ -1,8 +1,8 @@
-import React, { Suspense } from 'react';
+import { Suspense } from 'react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ChevronRight, PackageOpen } from 'lucide-react';
-import { getCategories, getProducts } from '@/lib/supabase/data';
+import { getCategories, getProductBrands, getProducts } from '@/lib/supabase/data';
 import { ProductCard } from '@/components/products/ProductCard';
 import { ProductFiltersSidebar } from '@/components/products/ProductFiltersSidebar';
 import { ProductSortToolbar } from '@/components/products/ProductSortToolbar';
@@ -13,7 +13,7 @@ interface CategoryPageProps {
     brand?: string;
     minPrice?: string;
     maxPrice?: string;
-    sort?: 'newest' | 'lowest_price' | 'highest_price' | 'highest_rating';
+    sort?: 'newest' | 'lowest_price' | 'highest_price' | 'highest_rating' | 'popular' | 'discount';
   }>;
 }
 
@@ -23,7 +23,7 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
   const { slug } = await params;
   const resolvedParams = await searchParams;
 
-  const categories = await getCategories();
+  const [categories, brands] = await Promise.all([getCategories(), getProductBrands()]);
   
   // Find current category or subcategory
   let currentCategory = categories.find((c) => c.slug === slug);
@@ -63,11 +63,15 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
 
         {/* Category Header Banner */}
         <div className="relative rounded-lg overflow-hidden mb-8 h-40 sm:h-48 bg-gray-900">
-          <img
-            src={currentCategory.image_url || 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=1600&q=80'}
-            alt={currentCategory.name}
-            className="w-full h-full object-cover opacity-50"
-          />
+          {currentCategory.image_url ? (
+            <img
+              src={currentCategory.image_url}
+              alt={currentCategory.name}
+              className="w-full h-full object-cover opacity-50"
+            />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-r from-gray-800 to-gray-700" />
+          )}
           <div className="absolute inset-0 bg-gradient-to-r from-black/80 to-transparent flex flex-col justify-center px-8 text-white">
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight mb-1">
               {currentCategory.name}
@@ -84,6 +88,7 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
             <Suspense fallback={<div className="h-96 bg-white rounded-lg animate-pulse" />}>
               <ProductFiltersSidebar
                 categories={categories}
+                brands={brands}
                 currentCategorySlug={slug}
               />
             </Suspense>

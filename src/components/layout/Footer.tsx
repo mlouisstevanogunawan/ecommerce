@@ -2,23 +2,53 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { 
-  Facebook, Twitter, Instagram, Youtube, CheckCircle2 
+import {
+  Facebook, Twitter, Instagram, Youtube, CheckCircle2, AlertCircle, Loader2,
 } from 'lucide-react';
 import { useTranslation } from '@/components/i18n/I18nProvider';
+import type { Category, SiteSettings } from '@/lib/types';
 
-export function Footer() {
+interface FooterProps {
+  categories: Category[];
+  settings: SiteSettings;
+}
+
+const SOCIALS = [
+  { key: 'facebook_url', label: 'Facebook', Icon: Facebook },
+  { key: 'twitter_url', label: 'Twitter', Icon: Twitter },
+  { key: 'instagram_url', label: 'Instagram', Icon: Instagram },
+  { key: 'youtube_url', label: 'YouTube', Icon: Youtube },
+] as const;
+
+export function Footer({ categories, settings }: FooterProps) {
   const { t } = useTranslation();
   const [email, setEmail] = useState('');
-  const [subscribed, setSubscribed] = useState(false);
+  const [state, setState] = useState<'idle' | 'sending' | 'done' | 'error'>('idle');
+  const [errorText, setErrorText] = useState('');
 
-  const handleSubscribe = (e: React.FormEvent) => {
+  async function handleSubscribe(e: React.FormEvent) {
     e.preventDefault();
-    if (email) {
-      setSubscribed(true);
+    setState('sending');
+    setErrorText('');
+    try {
+      const res = await fetch('/api/newsletter', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      const payload = (await res.json()) as { error?: string };
+      if (!res.ok) {
+        setState('error');
+        setErrorText(payload.error ?? 'Your subscription could not be saved.');
+        return;
+      }
+      setState('done');
       setEmail('');
+    } catch {
+      setState('error');
+      setErrorText('Network error. Please try again.');
     }
-  };
+  }
 
   return (
     <footer className="bg-white border-t border-gray-200 mt-16 text-gray-600">
@@ -36,55 +66,50 @@ export function Footer() {
               {t('footer.brandBio')}
             </p>
             <div className="flex items-center space-x-3 pt-2">
-              <a
-                href="https://facebook.com"
-                target="_blank"
-                rel="noreferrer"
-                className="w-8 h-8 rounded-full bg-gray-100 hover:bg-brand hover:text-white flex items-center justify-center text-gray-600 transition"
-                aria-label="Facebook"
-              >
-                <Facebook className="w-4 h-4" />
-              </a>
-              <a
-                href="https://twitter.com"
-                target="_blank"
-                rel="noreferrer"
-                className="w-8 h-8 rounded-full bg-gray-100 hover:bg-brand hover:text-white flex items-center justify-center text-gray-600 transition"
-                aria-label="Twitter"
-              >
-                <Twitter className="w-4 h-4" />
-              </a>
-              <a
-                href="https://instagram.com"
-                target="_blank"
-                rel="noreferrer"
-                className="w-8 h-8 rounded-full bg-gray-100 hover:bg-brand hover:text-white flex items-center justify-center text-gray-600 transition"
-                aria-label="Instagram"
-              >
-                <Instagram className="w-4 h-4" />
-              </a>
-              <a
-                href="https://youtube.com"
-                target="_blank"
-                rel="noreferrer"
-                className="w-8 h-8 rounded-full bg-gray-100 hover:bg-brand hover:text-white flex items-center justify-center text-gray-600 transition"
-                aria-label="YouTube"
-              >
-                <Youtube className="w-4 h-4" />
-              </a>
+              {/* An icon only renders when the admin has actually saved that
+                  profile; bare domains would link to a site nobody owns. */}
+              {SOCIALS.map(({ key, label, Icon }) => {
+                const url = settings[key];
+                if (!url) return null;
+                return (
+                  <a
+                    key={key}
+                    href={url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="w-8 h-8 rounded-full bg-gray-100 hover:bg-brand hover:text-white flex items-center justify-center text-gray-600 transition"
+                    aria-label={label}
+                  >
+                    <Icon className="w-4 h-4" />
+                  </a>
+                );
+              })}
             </div>
+            <ul className="space-y-1 pt-2 text-sm text-gray-600">
+              <li>
+                <a href={`mailto:${settings.contact_email}`} className="hover:text-brand">
+                  {settings.contact_email}
+                </a>
+              </li>
+              <li>{settings.contact_phone}</li>
+              <li className="max-w-xs">{settings.address}</li>
+            </ul>
           </div>
 
           {/* Col 2: Categories */}
           <div className="lg:col-span-2 space-y-3">
             <h4 className="font-bold text-gray-900 text-sm uppercase tracking-wider">{t('nav.categories')}</h4>
             <ul className="space-y-2 text-sm">
-              <li><Link href="/categories/clothing" className="hover:text-brand">{t('categories.clothing')}</Link></li>
-              <li><Link href="/categories/shoes" className="hover:text-brand">{t('categories.shoes')}</Link></li>
-              <li><Link href="/categories/home-living" className="hover:text-brand">{t('categories.homeLiving')}</Link></li>
-              <li><Link href="/categories/jewelry-accessories" className="hover:text-brand">{t('categories.accessories')}</Link></li>
-              <li><Link href="/categories/toys-entertainment" className="hover:text-brand">{t('categories.toys')}</Link></li>
-              <li><Link href="/categories/electronics" className="hover:text-brand">{t('categories.electronics')}</Link></li>
+              {categories.slice(0, 6).map((cat) => (
+                <li key={cat.id}>
+                  <Link href={`/categories/${cat.slug}`} className="hover:text-brand">
+                    {cat.name}
+                  </Link>
+                </li>
+              ))}
+              {categories.length === 0 && (
+                <li className="text-xs text-gray-400 italic">No categories yet</li>
+              )}
             </ul>
           </div>
 
@@ -108,52 +133,48 @@ export function Footer() {
             </div>
           </div>
 
-          {/* Col 4: Newsletter & Payments */}
+          {/* Col 4: Newsletter */}
           <div className="lg:col-span-4 space-y-4">
             <h4 className="font-bold text-gray-900 text-sm uppercase tracking-wider">{t('footer.newsletterTitle')}</h4>
             <p className="text-sm text-gray-600">
               {t('footer.newsletterDesc')}
             </p>
-            {subscribed ? (
+            {state === 'done' ? (
               <div className="flex items-center gap-2 p-3 bg-emerald-50 text-emerald-700 text-sm rounded-md border border-emerald-200">
                 <CheckCircle2 className="w-5 h-5" />
                 <span>{t('common.success')}!</span>
               </div>
             ) : (
-              <form onSubmit={handleSubscribe} className="flex gap-2">
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder={t('footer.emailPlaceholder')}
-                  required
-                  className="flex-1 px-3 py-2 bg-gray-50 border border-gray-300 rounded-md text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand"
-                />
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-brand hover:bg-brand-dark text-white font-semibold text-sm rounded-md shadow-sm transition shrink-0"
-                >
-                  {t('footer.subscribe')}
-                </button>
+              <form onSubmit={handleSubscribe} className="space-y-2">
+                <div className="flex gap-2">
+                  <label htmlFor="footer-newsletter-email" className="sr-only">
+                    {t('footer.emailPlaceholder')}
+                  </label>
+                  <input
+                    id="footer-newsletter-email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder={t('footer.emailPlaceholder')}
+                    required
+                    className="flex-1 px-3 py-2 bg-gray-50 border border-gray-300 rounded-md text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand"
+                  />
+                  <button
+                    type="submit"
+                    disabled={state === 'sending'}
+                    className="px-4 py-2 bg-brand hover:bg-brand-dark disabled:opacity-60 text-white font-semibold text-sm rounded-md shadow-sm transition shrink-0"
+                  >
+                    {state === 'sending' ? <Loader2 className="w-4 h-4 animate-spin" /> : t('footer.subscribe')}
+                  </button>
+                </div>
+                {state === 'error' && (
+                  <p className="flex items-center gap-1.5 text-xs text-rose-600">
+                    <AlertCircle className="w-3.5 h-3.5" />
+                    {errorText}
+                  </p>
+                )}
               </form>
             )}
-
-            {/* Payment Icons */}
-            <div className="pt-4 border-t border-gray-100">
-              <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-2">
-                Accepted Payment Methods
-              </span>
-              <div className="flex items-center space-x-2">
-                {['visa', 'mastercard', 'maestro', 'amex', 'discover'].map((card) => (
-                  <span
-                    key={card}
-                    className="px-2.5 py-1 bg-gray-50 border border-gray-200 rounded text-xs font-bold text-gray-700 uppercase"
-                  >
-                    {card}
-                  </span>
-                ))}
-              </div>
-            </div>
           </div>
         </div>
       </div>
@@ -161,7 +182,7 @@ export function Footer() {
       {/* Bottom Bar */}
       <div className="border-t border-gray-100 bg-gray-50 py-4 text-xs text-gray-500">
         <div className="modesy-container flex flex-col md:flex-row justify-between items-center gap-2">
-          <p>© {new Date().getFullYear()} Modesy - {t('footer.allRights')}</p>
+          <p>© {new Date().getFullYear()} {settings.site_title} - {t('footer.allRights')}</p>
           <div className="flex items-center space-x-4">
             <Link href="/privacy-policy" className="hover:text-brand hover:underline">
               {t('footer.privacy')}

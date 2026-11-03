@@ -1,4 +1,3 @@
-import React from 'react';
 import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
 
@@ -32,14 +31,21 @@ export default function TermsConditionsPage() {
 
           <h3 className="font-bold text-gray-900 text-base pt-2">3. Orders, Pricing, and Payments</h3>
           <p>
-            All prices displayed on product cards are set by individual vendors and subject to applicable taxes. 
-            Payment is captured at the moment of order placement and verified through secure gateway services.
+            Prices shown on product cards are the prices stored for that item and are set by the vendor. A
+            discount price, when present, replaces the list price for the whole order. Orders are split per
+            store, and stock is reduced when an order is accepted.
+          </p>
+          <p className="mt-2">
+            No payment processor is connected to this marketplace yet. Choosing the card option places the
+            order with a clearly flagged simulated payment; cash on delivery and bank transfer are recorded
+            as unpaid until the vendor confirms settlement.
           </p>
 
           <h3 className="font-bold text-gray-900 text-base pt-2">4. Prohibited Activities</h3>
           <p>
-            Users are strictly prohibited from listing counterfeit, trademark-infringing, stolen, or hazardous materials. 
-            Violations will result in permanent store suspension and law enforcement notification.
+            Users may not list counterfeit, trademark-infringing, stolen, or hazardous goods. Marketplace
+            staff can unpublish a listing or change an account role at their discretion; please report
+            violations through the contact page.
           </p>
         </div>
       </div>

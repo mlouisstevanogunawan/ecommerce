@@ -10,7 +10,3 @@ export class HttpError extends Error {
     this.status = status;
   }
 }
-
-export function statusOf(error: unknown): number {
-  return error instanceof HttpError ? error.status : 500;
-}

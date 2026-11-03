@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { PlusCircle, AlertCircle, ImageIcon } from 'lucide-react';
 import { slugify } from '@/lib/utils';
+import { ImageUpload } from '@/components/forms/ImageUpload';
 
 interface CategoryOption {
   id: string;
@@ -31,7 +32,7 @@ export function NewProductForm({
     price: '',
     discount_rate: '0',
     stock: '',
-    sku: `SKU-${Date.now().toString(36).toUpperCase()}`,
+    sku: '',
     description: '',
     imageUrl: '',
     status: 'draft',
@@ -39,6 +40,14 @@ export function NewProductForm({
     is_featured: false,
     is_special_offer: false,
   });
+
+  // The suggested SKU is generated in the browser only after mount: putting
+  // Date.now() in the initial state would make the server and client render
+  // different values into the same input.
+  useEffect(() => {
+    set('sku', `SKU-${Date.now().toString(36).toUpperCase()}`);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const priceNum = Number.parseFloat(form.price);
   const discountNum = Number.parseFloat(form.discount_rate);
@@ -129,7 +138,7 @@ export function NewProductForm({
           required
           minLength={3}
           maxLength={160}
-          placeholder="e.g. Vintage Leather Crossbody Bag"
+          placeholder="Name of the product you are listing"
           value={form.title}
           onChange={(e) => set('title', e.target.value)}
           className="w-full px-3 py-2 border border-gray-300 rounded text-xs focus:outline-none focus:border-brand font-medium"
@@ -224,7 +233,13 @@ export function NewProductForm({
               <ImageIcon className="w-6 h-6 text-gray-400" />
             )}
           </div>
-          <div className="flex-grow space-y-1">
+          <div className="flex-grow space-y-2">
+            <ImageUpload
+              bucket="products"
+              value={form.imageUrl}
+              onChange={(url) => set('imageUrl', url)}
+              label="Upload product image"
+            />
             <input
               type="url"
               placeholder="https://…"
@@ -233,7 +248,7 @@ export function NewProductForm({
               className="w-full px-3 py-2 border border-gray-300 rounded text-xs focus:outline-none focus:border-brand font-mono"
             />
             <span className="text-[11px] text-gray-400 block">
-              Optional. Paste a direct image URL, or upload to your Supabase Storage bucket and use its public link.
+              Upload stores the file in the Supabase Storage <code>products</code> bucket. The URL field is filled in by the upload and can be edited only to point at a file you already own.
             </span>
           </div>
         </div>

@@ -1,4 +1,3 @@
-import React from 'react';
 import { Settings } from 'lucide-react';
 import { getMyStore } from '@/lib/supabase/data';
 import { StoreSettingsForm } from './StoreSettingsForm';

@@ -1,4 +1,3 @@
-import React from 'react';
 import { Users } from 'lucide-react';
 import { getAllUsers } from '@/lib/supabase/data';
 import { requireRole } from '@/lib/auth/session';

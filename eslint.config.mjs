@@ -10,6 +10,11 @@ const compat = new FlatCompat({
 });
 
 const eslintConfig = [
+  {
+    // Next 16 writes route/page types into .next/types while dev or build runs.
+    // They are generated build output, so linting them only produces noise.
+    ignores: [".next/**", "out/**", "build/**", "node_modules/**", "coverage/**"],
+  },
   ...compat.extends("next/core-web-vitals", "next/typescript"),
   {
     rules: {

@@ -1,4 +1,3 @@
-import React from 'react';
 import Link from 'next/link';
 import { FileText, AlertCircle } from 'lucide-react';
 import { getOrderById } from '@/lib/supabase/data';

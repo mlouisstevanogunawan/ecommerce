@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Cookie } from 'lucide-react';
 import { useTranslation } from '@/components/i18n/I18nProvider';

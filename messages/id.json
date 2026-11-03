@@ -44,41 +44,27 @@
     "settings": "Pengaturan"
   },
   "categories": {
-    "clothing": "Pakaian",
-    "shoes": "Sepatu",
-    "accessories": "Aksesoris",
-    "homeLiving": "Rumah & Dekorasi",
-    "electronics": "Elektronik",
-    "beauty": "Kecantikan",
-    "toys": "Mainan & Hobi",
-    "books": "Buku",
-    "sports": "Olahraga",
     "popularProducts": "Produk Populer",
     "specialDeals": "Penawaran Spesial"
   },
   "home": {
-    "hero1Title": "Koleksi Pilihan Musim Panas",
-    "hero1Subtitle": "Jelajahi gaya butik kurasi istimewa karya kreator independen terbaik.",
-    "hero2Title": "Dekorasi Rumah & Kerajinan Tangan",
-    "hero2Subtitle": "Percantik ruang hunian Anda dengan desain ramah lingkungan dan berseni tinggi.",
-    "hero3Title": "Teknologi & Audio Masa Depan",
-    "hero3Subtitle": "Perangkat elektronik premium, gawai pintar, dan audio dengan fidelitas tinggi.",
     "shopNow": "Belanja Sekarang",
     "shopByCategory": "Belanja Berdasarkan Kategori",
     "featuredProducts": "Produk Unggulan",
+    "featuredSubtitle": "Produk yang ditandai unggulan oleh tokonya sendiri",
     "trendingCategories": "Kategori Tren",
     "specialOffers": "Penawaran Khusus",
     "latestFromBlog": "Artikel Blog Terbaru",
     "readMore": "Baca Selengkapnya",
     "trustBadges": {
       "freeShippingTitle": "Gratis Ongkos Kirim",
-      "freeShippingDesc": "Untuk semua pesanan di atas $150",
-      "securePaymentTitle": "Pembayaran Aman",
-      "securePaymentDesc": "100% terenkripsi & terlindungi",
-      "supportTitle": "Bantuan Khusus 24/7",
-      "supportDesc": "Selalu siap melayani Anda",
-      "moneyBackTitle": "Garansi Uang Kembali",
-      "moneyBackDesc": "Pengembalian mudah dalam 30 hari"
+      "freeShippingDesc": "Untuk pesanan di atas {amount}",
+      "supportTitle": "Layanan Bantuan",
+      "supportDesc": "Kirim pesan lewat halaman kontak",
+      "sellerContactTitle": "Kontak Langsung Penjual",
+      "sellerContactDesc": "Tanyakan ke penjual sebelum memesan",
+      "currencyTitle": "Nilai Tukar Jelas",
+      "currencyDesc": "Tampil dalam mata uang Anda, ditagih dalam USD"
     }
   },
   "products": {
@@ -126,7 +112,7 @@
     "discount": "Diskon",
     "shipping": "Biaya Pengiriman",
     "orderTotal": "Perkiraan Total",
-    "couponPlaceholder": "Masukkan kode kupon (mis. MODESY10)",
+    "couponPlaceholder": "Masukkan kode kupon",
     "applyCoupon": "Gunakan",
     "proceedCheckout": "Lanjut ke Pembayaran",
     "freeShippingQualified": "Selamat! Anda berhak mendapatkan Gratis Ongkos Kirim!",

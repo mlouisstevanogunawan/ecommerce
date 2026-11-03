@@ -20,8 +20,14 @@ if [ -z "$url" ] || [ -z "$key" ]; then
   exit 1
 fi
 
-# Disposable logins for local testing only. Change them if this project is ever shared.
-PASSWORD='Modesy#Demo2026'
+# The logins are disposable, but the password still does not belong in a committed file.
+# Set E2E_DEMO_PASSWORD in .env.local (or the environment) before running this script.
+PASSWORD="${E2E_DEMO_PASSWORD:-$(sed -n 's/^E2E_DEMO_PASSWORD=//p' "$env_file" | head -1 | tr -d '"')}"
+
+if [ -z "$PASSWORD" ]; then
+  echo "E2E_DEMO_PASSWORD is not set in $env_file. The demo logins need a password." >&2
+  exit 1
+fi
 
 users=(
   "admin@modesy.dev|Admin Modesy|customer"
@@ -58,8 +64,8 @@ for entry in "${users[@]}"; do
   fi
 
   # handle_new_user() (migration 005) creates the profiles row from this metadata and
-  # clamps anything other than 'seller' to 'customer', so 'admin' below is ignored on
-  # purpose: the admin role is granted by seed.sql, server-side.
+  # clamps anything other than 'seller' to 'customer'. Every entry above therefore starts
+  # as customer or seller; the admin role is granted by seed.sql, server-side.
   created=$(curl -sS -X POST "${headers[@]}" \
     -d "$(printf '{"email":"%s","password":"%s","email_confirm":true}' "$email" "$PASSWORD")" \
     "$url/auth/v1/admin/users")

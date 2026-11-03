@@ -1,4 +1,3 @@
-import React from 'react';
 import { Package } from 'lucide-react';
 import { getAllProducts } from '@/lib/supabase/data';
 import { AdminProductsTable } from './AdminProductsTable';

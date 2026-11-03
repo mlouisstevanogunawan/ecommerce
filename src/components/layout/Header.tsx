@@ -1,19 +1,20 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { 
   Search, ShoppingCart, Heart, MapPin, User, Menu, X, PlusCircle 
 } from 'lucide-react';
 import { MegaMenu } from './MegaMenu';
-import { LocationModal } from './LocationModal';
+import { LOCATION_STORAGE_KEY, LocationModal } from './LocationModal';
 import { AuthMenu } from '../auth/AuthMenu';
 import { useCart } from '../cart/CartProvider';
 import { useTranslation } from '@/components/i18n/I18nProvider';
 import { CurrencySwitcher } from './CurrencySwitcher';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { Category } from '@/lib/types';
+import { HOME_BY_ROLE, useSession } from '@/components/auth/useSession';
 
 interface HeaderProps {
   categories: Category[];
@@ -23,11 +24,23 @@ export function Header({ categories }: HeaderProps) {
   const router = useRouter();
   const { cartCount, wishlistIds } = useCart();
   const { t } = useTranslation();
+  const { session, checked, signOut } = useSession();
   const [searchQuery, setSearchQuery] = useState('');
   const [isLocationOpen, setIsLocationOpen] = useState(false);
-  const [selectedLocation, setSelectedLocation] = useState(t('nav.location'));
+  const [savedLocation, setSavedLocation] = useState('');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeMobileTab, setActiveMobileTab] = useState<'main' | 'categories'>('main');
+
+  // Read after mount so the prerendered header and the first client render match.
+  useEffect(() => {
+    try {
+      setSavedLocation(localStorage.getItem(LOCATION_STORAGE_KEY) ?? '');
+    } catch {
+      // Storage unavailable (private mode): the default label still renders.
+    }
+  }, []);
+
+  const locationLabel = savedLocation || t('nav.location');
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,6 +48,14 @@ export function Header({ categories }: HeaderProps) {
       router.push(`/products?search=${encodeURIComponent(searchQuery.trim())}`);
     } else {
       router.push('/products');
+    }
+  };
+
+  const handleSignOut = async () => {
+    if (await signOut()) {
+      setIsMobileMenuOpen(false);
+      router.push('/');
+      router.refresh();
     }
   };
 
@@ -63,7 +84,7 @@ export function Header({ categories }: HeaderProps) {
                 className="flex items-center gap-1 hover:text-brand transition-colors font-medium"
               >
                 <MapPin className="w-3.5 h-3.5 text-gray-500" />
-                <span>{selectedLocation}</span>
+                <span>{locationLabel}</span>
               </button>
 
               {/* Currency Dropdown */}
@@ -234,17 +255,54 @@ export function Header({ categories }: HeaderProps) {
                   <li><Link href="/shops" onClick={() => setIsMobileMenuOpen(false)} className="block py-2 hover:text-brand">{t('nav.shops')}</Link></li>
                   <li><Link href="/blog" onClick={() => setIsMobileMenuOpen(false)} className="block py-2 hover:text-brand">{t('nav.blog')}</Link></li>
                   <li><Link href="/contact" onClick={() => setIsMobileMenuOpen(false)} className="block py-2 hover:text-brand">{t('nav.contact')}</Link></li>
-                  <li><Link href="/seller/dashboard" onClick={() => setIsMobileMenuOpen(false)} className="block py-2 text-brand font-bold">{t('nav.sellerDashboard')}</Link></li>
-                  <li><Link href="/admin/dashboard" onClick={() => setIsMobileMenuOpen(false)} className="block py-2 text-purple-700 font-bold">{t('nav.adminDashboard')}</Link></li>
-                  <li className="pt-4 border-t border-gray-100">
-                    <Link
-                      href="/login"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                      className="block w-full py-2.5 px-4 bg-brand text-white rounded-md font-bold text-center"
-                    >
-                      {t('nav.login')} / {t('nav.register')}
-                    </Link>
-                  </li>
+                  {/* Only the dashboards this session is actually allowed to open. */}
+                  {checked && !session && (
+                    <li className="pt-4 border-t border-gray-100">
+                      <Link
+                        href="/login"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className="block w-full py-2.5 px-4 bg-brand text-white rounded-md font-bold text-center"
+                      >
+                        {t('nav.login')} / {t('nav.register')}
+                      </Link>
+                    </li>
+                  )}
+                  {session && (
+                    <>
+                      <li className="pt-4 border-t border-gray-100">
+                        <Link
+                          href={HOME_BY_ROLE[session.role]}
+                          onClick={() => setIsMobileMenuOpen(false)}
+                          className="block py-2 text-brand font-bold"
+                        >
+                          {t('nav.myAccount')} · {session.full_name}
+                        </Link>
+                      </li>
+                      {(session.role === 'seller' || session.role === 'admin') && (
+                        <li>
+                          <Link href="/seller/dashboard" onClick={() => setIsMobileMenuOpen(false)} className="block py-2 text-brand font-bold">
+                            {t('nav.sellerDashboard')}
+                          </Link>
+                        </li>
+                      )}
+                      {session.role === 'admin' && (
+                        <li>
+                          <Link href="/admin/dashboard" onClick={() => setIsMobileMenuOpen(false)} className="block py-2 text-purple-700 font-bold">
+                            {t('nav.adminDashboard')}
+                          </Link>
+                        </li>
+                      )}
+                      <li>
+                        <button
+                          type="button"
+                          onClick={handleSignOut}
+                          className="block w-full text-left py-2 text-gray-600 hover:text-brand font-bold"
+                        >
+                          {t('nav.logout')}
+                        </button>
+                      </li>
+                    </>
+                  )}
                 </ul>
               ) : (
                 <ul className="space-y-2 text-sm font-medium text-gray-800">
@@ -286,7 +344,13 @@ export function Header({ categories }: HeaderProps) {
         isOpen={isLocationOpen}
         onClose={() => setIsLocationOpen(false)}
         onSelectLocation={(country, state, city) => {
-          setSelectedLocation(city || state || country);
+          const value = city.trim() || state.trim() || country;
+          setSavedLocation(value);
+          try {
+            localStorage.setItem(LOCATION_STORAGE_KEY, value);
+          } catch {
+            // Storage unavailable: the label still updates for this session.
+          }
         }}
       />
     </>

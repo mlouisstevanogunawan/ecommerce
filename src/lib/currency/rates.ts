@@ -5,6 +5,9 @@ export interface ExchangeRatesResult {
   rates: Record<string, number>;
   updatedAt: string;
   isFallback?: boolean;
+  // Currency codes the live answer did not contain, so their rate is the bundled
+  // approximation rather than today's market rate.
+  missing?: string[];
 }
 
 // Fallback rates if external API is unreachable on startup
@@ -47,17 +50,24 @@ export async function getExchangeRates(): Promise<ExchangeRatesResult> {
     }
 
     const filteredRates: Record<string, number> = {};
+    const missing: string[] = [];
     for (const curr of SUPPORTED_CURRENCIES) {
-      filteredRates[curr.code] = typeof data.rates[curr.code] === 'number'
-        ? data.rates[curr.code]
-        : STATIC_FALLBACK_RATES[curr.code] || 1;
+      if (typeof data.rates[curr.code] === 'number') {
+        filteredRates[curr.code] = data.rates[curr.code];
+      } else {
+        // An answer that lacks one currency is only partly live. Silently
+        // substituting the bundled number would make a stale rate look current.
+        missing.push(curr.code);
+        filteredRates[curr.code] = STATIC_FALLBACK_RATES[curr.code] || 1;
+      }
     }
 
     cachedRates = {
       base: DEFAULT_CURRENCY,
       rates: filteredRates,
       updatedAt: new Date().toISOString(),
-      isFallback: false,
+      isFallback: missing.length > 0,
+      missing,
     };
     lastFetchTime = now;
     return cachedRates;
@@ -65,9 +75,12 @@ export async function getExchangeRates(): Promise<ExchangeRatesResult> {
     console.warn('[ExchangeRates] Failed to fetch live exchange rates:', error);
 
     if (cachedRates) {
+      // Reaching this branch means the cache is already older than its TTL, so no
+      // number in it can be called today's rate.
       return {
         ...cachedRates,
         isFallback: true,
+        missing: SUPPORTED_CURRENCIES.map((curr) => curr.code),
       };
     }
 
@@ -76,6 +89,7 @@ export async function getExchangeRates(): Promise<ExchangeRatesResult> {
       rates: { ...STATIC_FALLBACK_RATES },
       updatedAt: new Date().toISOString(),
       isFallback: true,
+      missing: SUPPORTED_CURRENCIES.map((curr) => curr.code),
     };
   }
 }

@@ -11,13 +11,13 @@ import { useTranslation } from '@/components/i18n/I18nProvider';
 interface ProductFiltersSidebarProps {
   categories: Category[];
   currentCategorySlug?: string;
-  brands?: string[];
+  brands: string[];
 }
 
 export function ProductFiltersSidebar({
   categories,
   currentCategorySlug,
-  brands = ['Modesy Basics', 'Urban Threads', 'SoleCraft', 'Heritage Living', 'Luxe Gems', 'Aura'],
+  brands,
 }: ProductFiltersSidebarProps) {
   const router = useRouter();
   const searchParams = useSearchParams();

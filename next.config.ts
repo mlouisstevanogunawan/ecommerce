@@ -17,6 +17,12 @@ function supabaseStorageHost(): string | null {
 const storageHost = supabaseStorageHost();
 
 const nextConfig: NextConfig = {
+  // /<slug> is the single product URL. The older /products/<slug> address still
+  // appears in outside links, so it moves permanently instead of serving the same
+  // page under two addresses.
+  async redirects() {
+    return [{ source: '/products/:slug', destination: '/:slug', permanent: true }];
+  },
   images: {
     remotePatterns: [
       {

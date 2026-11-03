@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Layers, Plus, Trash2, CheckCircle, AlertCircle } from 'lucide-react';
 import { Category } from '@/lib/types';
 import { slugify } from '@/lib/utils';
+import { ImageUpload } from '@/components/forms/ImageUpload';
 
 type Notice = { kind: 'ok' | 'err'; text: string } | null;
 
@@ -157,14 +158,15 @@ export function AdminCategoriesManager({ categories: initial }: { categories: Ca
               </select>
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Cover Image URL</label>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Cover Image</label>
               <input
                 type="url"
                 placeholder="https://…"
                 value={newCatImg}
                 onChange={(e) => setNewCatImg(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded text-xs focus:outline-none focus:border-brand font-mono"
+                className="w-full px-3 py-2 border border-slate-300 rounded text-xs focus:outline-none focus:border-brand font-mono mb-2"
               />
+              <ImageUpload bucket="covers" value={newCatImg} onChange={setNewCatImg} label="Upload category cover image" />
             </div>
             <button
               type="submit"

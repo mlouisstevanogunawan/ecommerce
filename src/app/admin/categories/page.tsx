@@ -1,4 +1,3 @@
-import React from 'react';
 import { Layers } from 'lucide-react';
 import { getCategories } from '@/lib/supabase/data';
 import { AdminCategoriesManager } from './AdminCategoriesManager';

@@ -11,7 +11,7 @@ interface CurrencySwitcherProps {
 }
 
 export function CurrencySwitcher({ variant = 'header', className = '' }: CurrencySwitcherProps) {
-  const { currency, setCurrency } = useCurrency();
+  const { currency, setCurrency, rateSource } = useCurrency();
   const [isOpen, setIsOpen] = useState(false);
   const [focusedIndex, setFocusedIndex] = useState(-1);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -107,13 +107,21 @@ export function CurrencySwitcher({ variant = 'header', className = '' }: Currenc
         aria-haspopup="listbox"
         aria-expanded={isOpen}
         aria-controls={listboxId}
-        aria-label={`Select currency, current currency is ${currency}`}
+        aria-label={`Select currency, current currency is ${currency}${rateSource === 'approximate' ? ", its rate is an approximation, not today's market rate" : ''}`}
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center gap-1 hover:text-brand transition-colors font-medium text-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-brand rounded-xs px-1 py-0.5"
       >
         <span>
           {currentConfig.code} ({currentConfig.symbol})
         </span>
+        {rateSource === 'approximate' && (
+          <span
+            title="The live rate feed did not answer for this currency, so prices use the bundled approximation."
+            className="text-amber-600 font-bold"
+          >
+            ≈
+          </span>
+        )}
         <ChevronDown className={`w-3 h-3 text-gray-500 transition-transform duration-150 ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
 import { Category } from '@/lib/types';
@@ -80,7 +80,7 @@ export function MegaMenu({ categories }: MegaMenuProps) {
                         >
                           <div className="relative w-full h-28 rounded-lg overflow-hidden bg-gray-100 border border-gray-200">
                             <img
-                              src={subItem.image_url || cat.image_url || 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=400&q=80'}
+                              src={subItem.image_url || cat.image_url || '/placeholder-product.svg'}
                               alt={subItem.name}
                               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                             />

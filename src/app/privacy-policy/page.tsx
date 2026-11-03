@@ -1,8 +1,12 @@
-import React from 'react';
 import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
+import { getSiteSettings } from '@/lib/supabase/data';
 
-export default function PrivacyPolicyPage() {
+export const revalidate = 300;
+
+export default async function PrivacyPolicyPage() {
+  const settings = await getSiteSettings();
+
   return (
     <div className="bg-gray-50 min-h-screen py-8">
       <div className="modesy-container max-w-4xl">
@@ -30,16 +34,21 @@ export default function PrivacyPolicyPage() {
             send operational notifications, and enhance your marketplace browsing experience.
           </p>
 
-          <h3 className="font-bold text-gray-900 text-base pt-2">3. Cookies & Analytics</h3>
+          <h3 className="font-bold text-gray-900 text-base pt-2">3. Cookies &amp; Local Storage</h3>
           <p>
-            We use essential session cookies to remember your shopping cart items, currency preferences, 
-            and authentication status. We never sell your personal data to third parties.
+            We use essential session cookies to keep you signed in, and cookies that remember your preferred
+            currency and language. Guest carts are kept in your browser&apos;s local storage; signed-in carts and
+            orders are stored in our database. We never sell your personal data to third parties.
           </p>
 
-          <h3 className="font-bold text-gray-900 text-base pt-2">4. Your Rights & GDPR Compliance</h3>
+          <h3 className="font-bold text-gray-900 text-base pt-2">4. Your Rights</h3>
           <p>
-            You have the right to request access, correction, or deletion of your personal data at any time 
-            by contacting our data protection officer at privacy@modesy.com.
+            You can update most of your own details directly from your account pages. To request access to,
+            correction of, or deletion of the rest of your personal data, contact us at{' '}
+            <a href={`mailto:${settings.contact_email}`} className="font-bold text-brand hover:underline">
+              {settings.contact_email}
+            </a>
+            .
           </p>
         </div>
       </div>

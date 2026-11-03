@@ -1,10 +1,4 @@
-import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
 import { getCurrencyConfig } from './currency/config';
-
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
 
 export function formatCurrency(amount: number, currency: string = 'USD'): string {
   const config = getCurrencyConfig(currency);
@@ -41,5 +35,11 @@ export function formatDate(dateString: string, locale: string = 'en-US'): string
   } catch {
     return dateString;
   }
+}
+
+// ~200 words per minute, the common adult reading-speed estimate used by publishing tools.
+export function readingMinutes(content: string): number {
+  const words = content.trim().split(/\s+/).filter(Boolean).length;
+  return Math.max(1, Math.round(words / 200));
 }
 

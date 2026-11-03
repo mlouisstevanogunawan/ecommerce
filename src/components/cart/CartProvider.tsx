@@ -2,6 +2,7 @@
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { cartSubtotal, unitPrice } from '@/lib/pricing';
 import { Cart, CartItem, Product, ProductVariant } from '@/lib/types';
 
 interface CartContextType {
@@ -9,6 +10,7 @@ interface CartContextType {
   isLoaded: boolean;
   userId: string | null;
   cartError: string;
+  wishlistError: string;
   wishlistIds: string[];
   addToCart: (product: Product, quantity?: number, variant?: ProductVariant | null) => void;
   updateQuantity: (itemId: string, quantity: number) => void;
@@ -57,6 +59,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [isLoaded, setIsLoaded] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
   const [cartError, setCartError] = useState('');
+  const [wishlistError, setWishlistError] = useState('');
   const [userId, setUserId] = useState<string | null>(null);
   const [wishlistIds, setWishlistIds] = useState<string[]>([]);
   const [lastAddedProduct, setLastAddedProduct] = useState<{ product: Product; quantity: number } | null>(null);
@@ -101,12 +104,14 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         const payload = await res.json();
         if (!res.ok) throw new Error(payload.error ?? 'Failed to load wishlist');
         setWishlistIds((payload.ids ?? []) as string[]);
+        setWishlistError('');
       })
       .catch((error: unknown) => {
         // A signed-in user gets no list plus an error, never a stale local copy
-        // that would claim items are saved when the database says otherwise.
+        // that would claim items are saved when the database says otherwise. The
+        // cart itself is unaffected, so this must not surface as a cart error.
         setWishlistIds([]);
-        setCartError(error instanceof Error ? error.message : 'Wishlist is unavailable');
+        setWishlistError(error instanceof Error ? error.message : 'Wishlist is unavailable');
       });
   }, [authChecked, userId]);
 
@@ -145,6 +150,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         } else {
           setItems(serverItems);
         }
+        // The saved cart owns this account from now on. Dropping the local copy
+        // stops a signed-in cart from being inherited by the next guest session
+        // after a logout.
+        localStorage.removeItem(CART_KEY);
         setCartError('');
         setIsLoaded(true);
       })
@@ -159,13 +168,15 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     };
   }, [authChecked, userId]);
 
+  // Only a loaded cart may be written back, otherwise the empty array of the
+  // first render would erase the stored cart before auth has been checked.
   useEffect(() => {
-    if (userId) writeLocal(CART_KEY, items);
-  }, [items, userId]);
+    if (!userId && isLoaded) writeLocal(CART_KEY, items);
+  }, [items, userId, isLoaded]);
 
   useEffect(() => {
-    if (!userId) writeLocal(WISHLIST_KEY, wishlistIds);
-  }, [wishlistIds, userId]);
+    if (!userId && authChecked) writeLocal(WISHLIST_KEY, wishlistIds);
+  }, [wishlistIds, userId, authChecked]);
 
   // Sends the whole cart as the canonical state; the database decides what is
   // actually addable (stock, published), so the response replaces local state.
@@ -234,7 +245,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const toggleWishlist = (productId: string) => {
     const added = !wishlistIds.includes(productId);
-    setWishlistIds(added ? [...wishlistIds, productId] : wishlistIds.filter((id) => id !== productId));
+    const optimistic = added ? [...wishlistIds, productId] : wishlistIds.filter((id) => id !== productId);
+    setWishlistIds(optimistic);
 
     if (!userId) return;
 
@@ -247,22 +259,21 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         const payload = await res.json();
         if (!res.ok) throw new Error(payload.error ?? 'Failed to update wishlist');
         setWishlistIds((payload.ids ?? []) as string[]);
+        setWishlistError('');
       })
       .catch((error: unknown) => {
-        setCartError(error instanceof Error ? error.message : 'Failed to update wishlist');
+        // The optimistic change was never saved: put the list back rather than
+        // leaving a heart icon that lies about what the database holds.
+        setWishlistIds(wishlistIds);
+        setWishlistError(error instanceof Error ? error.message : 'Failed to update wishlist');
       });
   };
 
   const isInWishlist = (productId: string) => wishlistIds.includes(productId);
 
-  const subtotal = useMemo(
-    () =>
-      items.reduce(
-        (sum, item) => sum + (item.variant?.discounted_price || item.product.discounted_price) * item.quantity,
-        0,
-      ),
-    [items],
-  );
+  // Same expression the database charges with (see src/lib/pricing.ts), so the
+  // cart, the checkout summary and the placed order cannot disagree.
+  const subtotal = useMemo(() => cartSubtotal(items), [items]);
 
   const cart: Cart = { id: 'local_cart', items, subtotal, discount: 0, total: subtotal };
   const cartCount = items.reduce((count, item) => count + item.quantity, 0);
@@ -274,6 +285,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         isLoaded,
         userId,
         cartError,
+        wishlistError,
         wishlistIds,
         addToCart,
         updateQuantity,

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { ShoppingBag, CheckCircle, AlertCircle } from 'lucide-react';
 import { Order, OrderStatus } from '@/lib/types';
 import { Price } from '@/components/currency/Price';

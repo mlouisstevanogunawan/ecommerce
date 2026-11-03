@@ -1,4 +1,3 @@
-import React from 'react';
 import Link from 'next/link';
 import { PlusCircle, ArrowLeft } from 'lucide-react';
 import { getCategories, getMyStore } from '@/lib/supabase/data';

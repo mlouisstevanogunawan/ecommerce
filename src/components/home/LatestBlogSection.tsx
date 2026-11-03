@@ -1,10 +1,9 @@
 'use client';
 
-import React from 'react';
 import Link from 'next/link';
-import { ArrowRight, Calendar, User } from 'lucide-react';
+import { ArrowRight, Calendar } from 'lucide-react';
 import { BlogPost } from '@/lib/types';
-import { formatDate } from '@/lib/utils';
+import { formatDate, readingMinutes } from '@/lib/utils';
 
 interface LatestBlogSectionProps {
   posts: BlogPost[];
@@ -42,13 +41,13 @@ export function LatestBlogSection({ posts }: LatestBlogSectionProps) {
             >
               <Link href={`/blog/${post.slug}`} className="relative h-48 overflow-hidden block">
                 <img
-                  src={post.image_url || 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=600&q=80'}
+                  src={post.image_url || '/placeholder-product.svg'}
                   alt={post.title}
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                   loading="lazy"
                 />
                 <div className="absolute top-3 left-3 bg-brand text-white text-[11px] font-bold px-2.5 py-1 rounded">
-                  {post.category?.name || 'Trends'}
+                  {post.category?.name}
                 </div>
               </Link>
 
@@ -58,10 +57,6 @@ export function LatestBlogSection({ posts }: LatestBlogSectionProps) {
                     <span className="flex items-center gap-1">
                       <Calendar className="w-3.5 h-3.5" />
                       {formatDate(post.created_at)}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <User className="w-3.5 h-3.5" />
-                      Modesy Editor
                     </span>
                   </div>
                   <h4 className="font-bold text-base text-gray-900 group-hover:text-brand transition-colors line-clamp-2 leading-snug">
@@ -79,7 +74,7 @@ export function LatestBlogSection({ posts }: LatestBlogSectionProps) {
                   >
                     Read More <ArrowRight className="w-3.5 h-3.5" />
                   </Link>
-                  <span className="text-xs text-gray-400">5 min read</span>
+                  <span className="text-xs text-gray-400">{readingMinutes(post.content)} min read</span>
                 </div>
               </div>
             </article>

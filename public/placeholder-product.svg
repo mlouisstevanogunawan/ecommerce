@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="800" viewBox="0 0 600 800" role="img" aria-label="No image uploaded">
+  <rect width="600" height="800" fill="#f3f4f6"/>
+  <g fill="none" stroke="#9ca3af" stroke-width="12" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="176" y="316" width="248" height="188" rx="14"/>
+    <path d="M176 452l64-64 52 52 44-44 68 68"/>
+    <circle cx="256" cy="372" r="20"/>
+  </g>
+  <text x="300" y="560" text-anchor="middle" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="26" fill="#6b7280">No image yet</text>
+</svg>

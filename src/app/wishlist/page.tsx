@@ -1,4 +1,3 @@
-import React from 'react';
 import Link from 'next/link';
 import { AlertCircle, ChevronRight, Heart } from 'lucide-react';
 import { getWishlist } from '@/lib/supabase/data';

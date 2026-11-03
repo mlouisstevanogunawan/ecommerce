@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { MapPin, X, Globe } from 'lucide-react';
+import { MapPin, X } from 'lucide-react';
 
 interface LocationModalProps {
   isOpen: boolean;
@@ -9,6 +9,9 @@ interface LocationModalProps {
   onSelectLocation?: (country: string, state: string, city: string) => void;
 }
 
+export const LOCATION_STORAGE_KEY = 'modesy_location';
+
+// Reference list only: it names countries, it stores no shop data.
 const COUNTRIES = [
   'United States',
   'Indonesia',
@@ -21,7 +24,7 @@ const COUNTRIES = [
 ];
 
 export function LocationModal({ isOpen, onClose, onSelectLocation }: LocationModalProps) {
-  const [selectedCountry, setSelectedCountry] = useState('United States');
+  const [selectedCountry, setSelectedCountry] = useState('');
   const [selectedState, setSelectedState] = useState('');
   const [selectedCity, setSelectedCity] = useState('');
 
@@ -29,6 +32,7 @@ export function LocationModal({ isOpen, onClose, onSelectLocation }: LocationMod
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!selectedCountry) return;
     if (onSelectLocation) {
       onSelectLocation(selectedCountry, selectedState, selectedCity);
     }
@@ -56,7 +60,8 @@ export function LocationModal({ isOpen, onClose, onSelectLocation }: LocationMod
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <p className="text-sm text-gray-600">
-            Filter products and estimate delivery options by selecting your regional location.
+            Choose the area you want shown in the header. This label is saved in your browser only and does
+            not change shipping costs or product availability.
           </p>
 
           <div>
@@ -66,8 +71,12 @@ export function LocationModal({ isOpen, onClose, onSelectLocation }: LocationMod
             <select
               value={selectedCountry}
               onChange={(e) => setSelectedCountry(e.target.value)}
+              required
               className="w-full px-3 py-2.5 bg-gray-50 border border-gray-300 rounded-md text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand"
             >
+              <option value="" disabled>
+                Select a country
+              </option>
               {COUNTRIES.map((country) => (
                 <option key={country} value={country}>
                   {country}
